@@ -13,6 +13,7 @@ class Server
         void    Invite();
         void    Topic();
         void    Mode();
+        void    Join();
         void    checkCommand(int sd, char *buffer);
         // class ERR_NEEDMOREPARAMS : public std::exception
         // {
