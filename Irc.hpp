@@ -16,6 +16,9 @@ class Server
         void    Join();
         void    PrivMsg();
         void    checkCommand(int sd, char *buffer);
+
+        //ERROR_MSGS
+        
         class ERR_NEEDMOREPARAMS : public std::exception
         {
             virtual const char* what() const throw();

@@ -48,6 +48,7 @@ void Server::checkCommand(int sd, char *buffer)
 }
 
 //ERROR_MSGS
+
 const char *Server::ERR_NEEDMOREPARAMS::what() const throw()
 {
     return ("Need more params");
