@@ -2,15 +2,28 @@
 
 Server::Server()
 {
-
+    std::cout << "Server constructor called" << std::endl;
 }
 
 Server::~Server()
 {
+    std::cout << "Server destructor called" << std::endl;
+}
+
+void Server::Pass()
+{
 
 }
 
+void Server::Nick()
+{
 
+}
+
+void Server::User()
+{
+
+}
 
 void Server::Kick()
 {
@@ -44,6 +57,25 @@ void Server::PrivMsg()
 
 void Server::checkCommand(int sd, char *buffer)
 {
+    std::string arg = buffer;
+    if (arg.compare(0, 4, "JOIN") == 0)
+        Join();
+    if (arg.compare(0, 7, "PRIVMSG") == 0)
+        PrivMsg();
+    if (arg.compare(0, 6, "INVITE") == 0)
+        Invite();
+    if (arg.compare(0, 4, "KICK") == 0)
+        Kick();
+    if (arg.compare(0, 4, "MODE") == 0)
+        Mode();
+    if (arg.compare(0, 5, "TOPIC") == 0)
+        Topic();
+    if (arg.compare(0, 4, "NICK") == 0)
+        Nick();
+    if (arg.compare(0, 4, "PASS") == 0)
+        Pass();
+    if (arg.compare(0, 4, "USER") == 0)
+        User();
     std::cout << "Received data from client, socket fd: " << sd << ", Data: " << buffer << std::endl;
 }
 

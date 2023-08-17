@@ -9,6 +9,9 @@ class Server
 
         Server();
         ~Server();
+        void    Pass();
+        void    Nick();
+        void    User();
         void    Kick();
         void    Invite();
         void    Topic();
@@ -18,7 +21,7 @@ class Server
         void    checkCommand(int sd, char *buffer);
 
         //ERROR_MSGS
-        
+
         class ERR_NEEDMOREPARAMS : public std::exception
         {
             virtual const char* what() const throw();
