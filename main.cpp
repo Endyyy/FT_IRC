@@ -47,7 +47,8 @@ void test(int port, std::string servPass)
 
     // Create server socket
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket == -1) {
+    if (serverSocket == -1)
+    {
         std::cerr << "Error creating socket." << std::endl;
         return ;
     }
@@ -58,13 +59,15 @@ void test(int port, std::string servPass)
     address.sin_port = htons(port); // Use our desired port number
 
     // Bind the socket to a specific address and port
-    if (bind(serverSocket, (struct sockaddr *)&address, sizeof(address)) < 0) {
+    if (bind(serverSocket, (struct sockaddr *)&address, sizeof(address)) < 0)
+    {
         std::cerr << "Bind failed." << std::endl;
         return ;
     }
 
     // Listen for incoming connections
-    if (listen(serverSocket, 3) < 0) {
+    if (listen(serverSocket, 3) < 0)
+    {
         std::cerr << "Listen failed." << std::endl;
         return ;
     }
@@ -73,7 +76,8 @@ void test(int port, std::string servPass)
 
     std::vector<int> clientSockets(MAX_CLIENTS, 0);
 
-    while (true) {
+    while (true)
+    {
         FD_ZERO(&readfds);
 
         // Add the server socket to the set
@@ -81,7 +85,8 @@ void test(int port, std::string servPass)
         maxSocket = serverSocket;
 
         // Add child sockets to the set
-        for (int i = 0; i < MAX_CLIENTS; ++i) {
+        for (int i = 0; i < MAX_CLIENTS; ++i)
+        {
             int sd = clientSockets[i];
             if (sd > 0)
                 FD_SET(sd, &readfds);
@@ -91,14 +96,17 @@ void test(int port, std::string servPass)
 
         // Wait for activity on any of the sockets
         activity = select(maxSocket + 1, &readfds, NULL, NULL, NULL);
-        if (activity < 0) {
+        if (activity < 0)
+        {
             std::cerr << "Select error." << std::endl;
             return ;
         }
 
         // New incoming connection
-        if (FD_ISSET(serverSocket, &readfds)) {
-            if ((newSocket = accept(serverSocket, (struct sockaddr *)&address, (socklen_t*)&address)) < 0) {
+        if (FD_ISSET(serverSocket, &readfds))
+        {
+            if ((newSocket = accept(serverSocket, (struct sockaddr *)&address, (socklen_t*)&address)) < 0)
+            {
                 std::cerr << "Accept error." << std::endl;
                 return ;
             }
@@ -114,10 +122,12 @@ void test(int port, std::string servPass)
             char nicknameBuffer[BUFFER_SIZE] = {0};
             send(newSocket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
             int valread = read(newSocket, passwordBuffer, BUFFER_SIZE);
-            if (valread > 0) {
+            if (valread > 0)
+            {
                 clientPassword = passwordBuffer;
                 clientPassword.erase(std::remove(clientPassword.begin(), clientPassword.end(), '\n'), clientPassword.end()); // Remove newline character
-            } else {
+            } else
+            {
                 // Error reading password
                 std::cerr << "Error reading password from client." << std::endl;
                 close(newSocket);
@@ -128,15 +138,18 @@ void test(int port, std::string servPass)
                 // Password match, accept the connection
                 std::cout << "Client authenticated. Connection accepted." << std::endl;
                 // Add new socket to array of client sockets
-                for (int i = 0; i < MAX_CLIENTS; ++i) {
-                    if (clientSockets[i] == 0) {
+                for (int i = 0; i < MAX_CLIENTS; ++i)
+                {
+                    if (clientSockets[i] == 0)
+                    {
                         clientSockets[i] = newSocket;
                         break;
                     }
                 }
                 send(newSocket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
                 valread = read(newSocket, nicknameBuffer, BUFFER_SIZE);
-                if (valread > 0) {
+                if (valread > 0)
+                {
                     clientNickname = nicknameBuffer;
                     clientNickname.erase(std::remove(clientNickname.begin(), clientNickname.end(), '\n'), clientNickname.end()); // Remove newline character
                 }
@@ -149,7 +162,8 @@ void test(int port, std::string servPass)
                 }
                 send(newSocket, "USER <username>\n", strlen("USER <username>\n"), 0);
                 valread = read(newSocket, usernameBuffer, BUFFER_SIZE);
-                if (valread > 0) {
+                if (valread > 0)
+                {
                     clientUsername = usernameBuffer;
                     clientUsername.erase(std::remove(clientUsername.begin(), clientUsername.end(), '\n'), clientUsername.end()); // Remove newline character
                 }
@@ -170,8 +184,10 @@ void test(int port, std::string servPass)
             }
 
             // Add new socket to array of client sockets
-            for (int i = 0; i < MAX_CLIENTS; ++i) {
-                if (clientSockets[i] == 0) {
+            for (int i = 0; i < MAX_CLIENTS; ++i)
+            {
+                if (clientSockets[i] == 0)
+                {
                     clientSockets[i] = newSocket;
                     break;
                 }
@@ -179,20 +195,30 @@ void test(int port, std::string servPass)
         }
 
         // Handle data from clients
-        for (int i = 0; i < MAX_CLIENTS; ++i) {
+        for (int i = 0; i < MAX_CLIENTS; ++i)
+        {
             int sd = clientSockets[i];
-            if (FD_ISSET(sd, &readfds)) {
+            if (FD_ISSET(sd, &readfds))
+            {
                 char buffer[BUFFER_SIZE] = {0};
                 int valread = read(sd, buffer, BUFFER_SIZE);
-                if (valread == 0) {
+                if (valread == 0)
+                {
                     // Client disconnected
                     std::cout << "Client disconnected, socket fd: " << sd << std::endl;
                     close(sd);
                     clientSockets[i] = 0;
-                } else {
+                }
+                else if (valread == -1)
+                {
+                    // Error or abrupt disconnection
+                    std::cerr << "Error reading data from client, socket fd: " << sd << std::endl;
+                    close(sd);
+                    clientSockets[i] = 0;
+                }
+                else {
                     // Handle data from the client
                     myServ.checkCommand(sd, buffer);
-                    //std::cout << "Received data from client, socket fd: " << sd << ", Data: " << buffer << std::endl;
                 }
             }
         }
