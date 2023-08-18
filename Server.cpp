@@ -10,16 +10,42 @@ Server::~Server()
     std::cout << "Server destructor called" << std::endl;
 }
 
-void Server::cmdPass(std::string arg)
+void Server::cmdPass(std::string arg, int sd)
 {
-    (void)arg;
+    std::stringstream stream(arg);
+    std::string cmd_name;
+    std::string passwd;
+    std::string end;
+
+    if (stream)
+    {
+        stream >> cmd_name;
+    }
+    if (stream)
+    {
+        stream >> passwd;
+        if (passwd[0] == 0)
+        {
+            send(sd, "PASS <password>\n", strlen("PASS <password>\n"), 0);
+            return ;
+        }
+    }
+    if (stream)
+    {
+        stream >> end;
+        if (end[0])
+        {
+            send(sd, "PASS <password>\n", strlen("PASS <password>\n"), 0);
+        }
+    }
 }
 
-void Server::cmdNick(std::string arg)
+void Server::cmdNick(std::string arg, int sd)
 {
     std::stringstream stream(arg);
     std::string cmd_name;
     std::string nick_name;
+    std::string end;
 
     if (stream)
     {
@@ -30,16 +56,26 @@ void Server::cmdNick(std::string arg)
         stream >> nick_name;
         if (nick_name[0] == 0)
         {
-            std::cout << "NICK nickname" << std::endl;
+            send(sd, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
+            return ;
+        }
+    }
+    if (stream)
+    {
+        stream >> end;
+        if (end[0])
+        {
+            send(sd, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
         }
     }
 }
 
-void Server::cmdUser(std::string arg)
+void Server::cmdUser(std::string arg, int sd)
 {
     std::stringstream stream(arg);
     std::string cmd_name;
     std::string user_name;
+    std::string end;
 
     if (stream)
     {
@@ -50,39 +86,54 @@ void Server::cmdUser(std::string arg)
         stream >> user_name;
         if (user_name[0] != ':')
         {
-            std::cout << "USER :username" << std::endl;
+            send(sd, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+            return ;
+        }
+    }
+    if (stream)
+    {
+        stream >> end;
+        if (end[0])
+        {
+            send(sd, "USER :<username>\n", strlen("USER :<username>\n"), 0);
         }
     }
 }
 
-void Server::cmdKick(std::string arg)
+void Server::cmdKick(std::string arg, int sd)
 {
     (void)arg;
+    (void)sd;
 }
 
-void Server::cmdInvite(std::string arg)
+void Server::cmdInvite(std::string arg, int sd)
 {
     (void)arg;
+    (void)sd;
 }
 
-void Server::cmdTopic(std::string arg)
+void Server::cmdTopic(std::string arg, int sd)
 {
     (void)arg;
+    (void)sd;
 }
 
-void Server::cmdMode(std::string arg)
+void Server::cmdMode(std::string arg, int sd)
 {
     (void)arg;
+    (void)sd;
 }
 
-void Server::cmdJoin(std::string arg)
+void Server::cmdJoin(std::string arg, int sd)
 {
     (void)arg;
+    (void)sd;
 }
 
-void Server::cmdPrivMsg(std::string arg)
+void Server::cmdPrivMsg(std::string arg, int sd)
 {
     (void)arg;
+    (void)sd;
 }
 
 void Server::cmdQuit()
@@ -94,23 +145,23 @@ void Server::checkCommand(int sd, char *buffer)
 {
     std::string arg = buffer;
     if (arg.compare(0, 4, "JOIN") == 0)
-        cmdJoin(arg);
+        cmdJoin(arg, sd);
     if (arg.compare(0, 7, "PRIVMSG") == 0)
-        cmdPrivMsg(arg);
+        cmdPrivMsg(arg, sd);
     if (arg.compare(0, 6, "INVITE") == 0)
-        cmdInvite(arg);
+        cmdInvite(arg, sd);
     if (arg.compare(0, 4, "KICK") == 0)
-        cmdKick(arg);
+        cmdKick(arg, sd);
     if (arg.compare(0, 4, "MODE") == 0)
-        cmdMode(arg);
+        cmdMode(arg, sd);
     if (arg.compare(0, 5, "TOPIC") == 0)
-        cmdTopic(arg);
+        cmdTopic(arg, sd);
     if (arg.compare(0, 4, "NICK") == 0)
-        cmdNick(arg);
+        cmdNick(arg, sd);
     if (arg.compare(0, 4, "PASS") == 0)
-        cmdPass(arg);
+        cmdPass(arg, sd);
     if (arg.compare(0, 4, "USER") == 0)
-        cmdUser(arg);
+        cmdUser(arg, sd);
     if (arg.compare(0, 4, "Quit") == 0)
         cmdQuit();
     std::cout << "Received data from client, socket fd: " << sd << ", Data: " << buffer << std::endl;
@@ -137,10 +188,6 @@ const char *Server::ERR_ERRONEUSNICKNAME::what() const throw()
 const char *Server::ERR_NICKNAMEINUSE::what() const throw()
 {
     return("Nickname is already in use");
-}
-const char *Server::ERR_NICKCOLLISION::what() const throw()
-{
-    return("Nickname collision KILL");
 }
 const char *Server::ERR_NOTONCHANNEL::what() const throw()
 {
