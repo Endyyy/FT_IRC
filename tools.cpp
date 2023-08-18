@@ -65,5 +65,6 @@ bool    check_password(std::string arg)
     //two: aucun whitespaces
     if (have_whitespaces(arg))
         return (false);
+        
     return (true);
 }
