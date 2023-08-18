@@ -2,6 +2,7 @@
 #define IRC_HPP
 #include <iostream>
 #include <cstdlib>
+#include <sstream>
 
 class Server
 {
@@ -9,15 +10,15 @@ class Server
 
         Server();
         ~Server();
-        void    Pass();
-        void    Nick();
-        void    User();
-        void    Kick();
-        void    Invite();
-        void    Topic();
-        void    Mode();
-        void    Join();
-        void    PrivMsg();
+        void    Pass(std::string arg);
+        void    Nick(std::string arg);
+        void    User(std::string arg);
+        void    Kick(std::string arg);
+        void    Invite(std::string arg);
+        void    Topic(std::string arg);
+        void    Mode(std::string arg);
+        void    Join(std::string arg);
+        void    PrivMsg(std::string arg);
         void    checkCommand(int sd, char *buffer);
 
         //ERROR_MSGS
