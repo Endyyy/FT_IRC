@@ -1,8 +1,16 @@
-#ifndef IRC_HPP
-#define IRC_HPP
-#include <iostream>
-#include <cstdlib>
-#include <sstream>
+#ifndef SERVER_HPP
+# define SERVER_HPP
+
+# include <iostream>
+# include <stdexcept>
+# include <cstring>
+# include <cstdlib>
+# include <cstdio>
+# include <unistd.h>
+# include <vector>
+# include <algorithm>
+# include <arpa/inet.h>
+# include <sstream>
 
 class Server
 {
