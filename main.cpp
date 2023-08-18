@@ -1,42 +1,10 @@
-#include "Server.hpp"
 #include <iostream>
-#include <cstring>
-#include <cstdlib>
-#include <cstdio>
-#include <vector>
-#include <algorithm>
-#include <unistd.h>
-#include <arpa/inet.h>
+#include <stdexcept>
+#include "Server.hpp"
+#include "User.hpp"
+#include "tools.hpp"
 
-int	isInt(char *av)
-{
-	std::string str = av;
-    if (str.size() > 4 || str.empty())
-    {
-        return (1);
-    }
-	for (int i = 0; str[i]; i++)
-	{
-		if (!isdigit(str[i]))
-			return (1);
-	}
-    if (atoi(av) > 9999)
-    {
-        return (1);
-    }
-	return (0);
-}
-
-int checkArgs(char **av)
-{
-    if (isInt(av[1]))
-        return (1);
-    return (0);
-}
-
-
-
-void test(int port, std::string servPass)
+void run_server(int port, std::string servPass)
 {
     Server myServ;
     const int MAX_CLIENTS = 5;
@@ -225,14 +193,19 @@ void test(int port, std::string servPass)
     }
 }
 
-int main(int ac, char **av)
-{
-    if (ac != 3 || checkArgs(av))
+int main(int argc, char** argv)
+{    
+    try
     {
-        std::cout << "Usage : ./ircserv <port> <password>" << std::endl;
-        return (1);
+        if (argc == 3 && check_port(argv[1]) && check_password(argv[2]))
+            run_server(atoi(argv[1]), argv[2]);
+        else
+            throw (std::invalid_argument("Error : usage ./ircserv <PORT> <PASSWORD>"));
     }
-    std::string servPass = av[2];
-    test(atoi(av[1]), servPass);
+    catch(const std::exception& e)
+    {
+        std::cout << "Fatal " << e.what() << std::endl;
+		return (1);
+    }
     return (0);
 }

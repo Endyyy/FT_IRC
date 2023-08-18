@@ -4,8 +4,10 @@ CC = c++
 
 CFLAGS = -Wall -Werror -Wextra -std=c++98
 
-SRCS =  main.cpp \
-		Irc.cpp
+SRCS =  Server.cpp \
+		User.cpp \
+		tools.cpp \
+		main.cpp \
 
 OBJ = $(SRCS:.cpp=.o)
 
