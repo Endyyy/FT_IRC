@@ -73,7 +73,8 @@ void run_server(int port, std::string servPass)
         // New incoming connection
         if (FD_ISSET(serverSocket, &readfds))
         {
-            if ((newSocket = accept(serverSocket, (struct sockaddr *)&address, (socklen_t*)&address)) < 0)
+            socklen_t addrLength = sizeof(address);
+            if ((newSocket = accept(serverSocket, (struct sockaddr *)&address, &addrLength)) < 0)
             {
                 std::cerr << "Accept error." << std::endl;
                 return ;
