@@ -1,5 +1,5 @@
-#ifndef IRC_HPP
-#define IRC_HPP
+#ifndef SERVER_HPP
+#define SERVER_HPP
 #include <iostream>
 #include <cstdlib>
 
