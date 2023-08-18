@@ -28,9 +28,11 @@
 
 bool    have_whitespaces(std::string arg)
 {
-    for (int i = 0; arg[i]; i++)
-        if (arg[i] < 33 || arg[i] == 127)
+    for (unsigned long i = 0; i < arg.size(); i++)
+    {
+        if (isspace(arg[i]))
             return (false);
+    }
     return (true);
 }
 
@@ -46,13 +48,12 @@ bool    check_port(const char* arg)
 
     //two: que des chiffres
     val = std::strtol(arg, &endptr, 10);
-    if (*endptr !='\0')
+    if (*endptr != '\0')
         return (false);
 
     //three: atoisable entre PORT_MIN jusqu'a PORT_MAX (voir laquelle)
     if (val < PORT_MIN || val > PORT_MAX)
         return (false);
-
     return (true);
 }
 
@@ -63,7 +64,7 @@ bool    check_password(std::string arg)
         return (false);
 
     //two: aucun whitespaces
-    if (have_whitespaces(arg))
+    if (!have_whitespaces(arg))
         return (false);
         
     return (true);

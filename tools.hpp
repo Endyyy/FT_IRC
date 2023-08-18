@@ -16,6 +16,7 @@
 # include <vector>
 # include <algorithm>
 # include <arpa/inet.h>
+# include <cctype>
 
 // bool	isInt(char *av);
 // int     checkArgs(char **av);

@@ -18,15 +18,16 @@ class Server
 
         Server();
         ~Server();
-        void    Pass(std::string arg);
-        void    Nick(std::string arg);
-        void    User(std::string arg);
-        void    Kick(std::string arg);
-        void    Invite(std::string arg);
-        void    Topic(std::string arg);
-        void    Mode(std::string arg);
-        void    Join(std::string arg);
-        void    PrivMsg(std::string arg);
+        void    cmdPass(std::string arg);
+        void    cmdNick(std::string arg);
+        void    cmdUser(std::string arg);
+        void    cmdKick(std::string arg);
+        void    cmdInvite(std::string arg);
+        void    cmdTopic(std::string arg);
+        void    cmdMode(std::string arg);
+        void    cmdJoin(std::string arg);
+        void    cmdPrivMsg(std::string arg);
+        void    cmdQuit();
         void    checkCommand(int sd, char *buffer);
 
         //ERROR_MSGS

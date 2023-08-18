@@ -10,12 +10,12 @@ Server::~Server()
     std::cout << "Server destructor called" << std::endl;
 }
 
-void Server::Pass(std::string arg)
+void Server::cmdPass(std::string arg)
 {
     (void)arg;
 }
 
-void Server::Nick(std::string arg)
+void Server::cmdNick(std::string arg)
 {
     std::stringstream stream(arg);
     std::string cmd_name;
@@ -28,10 +28,14 @@ void Server::Nick(std::string arg)
     if (stream)
     {
         stream >> nick_name;
+        if (nick_name[0] == 0)
+        {
+            std::cout << "NICK nickname" << std::endl;
+        }
     }
 }
 
-void Server::User(std::string arg)
+void Server::cmdUser(std::string arg)
 {
     std::stringstream stream(arg);
     std::string cmd_name;
@@ -51,57 +55,64 @@ void Server::User(std::string arg)
     }
 }
 
-void Server::Kick(std::string arg)
+void Server::cmdKick(std::string arg)
 {
     (void)arg;
 }
 
-void Server::Invite(std::string arg)
+void Server::cmdInvite(std::string arg)
 {
     (void)arg;
 }
 
-void Server::Topic(std::string arg)
+void Server::cmdTopic(std::string arg)
 {
     (void)arg;
 }
 
-void Server::Mode(std::string arg)
+void Server::cmdMode(std::string arg)
 {
     (void)arg;
 }
 
-void Server::Join(std::string arg)
+void Server::cmdJoin(std::string arg)
 {
     (void)arg;
 }
 
-void Server::PrivMsg(std::string arg)
+void Server::cmdPrivMsg(std::string arg)
 {
     (void)arg;
+}
+
+void Server::cmdQuit()
+{
+
 }
 
 void Server::checkCommand(int sd, char *buffer)
 {
     std::string arg = buffer;
     if (arg.compare(0, 4, "JOIN") == 0)
-        Join(arg);
+        cmdJoin(arg);
     if (arg.compare(0, 7, "PRIVMSG") == 0)
-        PrivMsg(arg);
+        cmdPrivMsg(arg);
     if (arg.compare(0, 6, "INVITE") == 0)
-        Invite(arg);
+        cmdInvite(arg);
     if (arg.compare(0, 4, "KICK") == 0)
-        Kick(arg);
+        cmdKick(arg);
     if (arg.compare(0, 4, "MODE") == 0)
-        Mode(arg);
+        cmdMode(arg);
     if (arg.compare(0, 5, "TOPIC") == 0)
-        Topic(arg);
+        cmdTopic(arg);
     if (arg.compare(0, 4, "NICK") == 0)
-        Nick(arg);
+        cmdNick(arg);
     if (arg.compare(0, 4, "PASS") == 0)
-        Pass(arg);
+        cmdPass(arg);
     if (arg.compare(0, 4, "USER") == 0)
-        User(arg);
+        cmdUser(arg);
+    if (arg.compare(0, 4, "Quit") == 0)
+        cmdQuit();
     std::cout << "Received data from client, socket fd: " << sd << ", Data: " << buffer << std::endl;
 }
 
