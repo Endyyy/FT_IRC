@@ -10,72 +10,98 @@ Server::~Server()
     std::cout << "Server destructor called" << std::endl;
 }
 
-void Server::Pass()
+void Server::Pass(std::string arg)
 {
-
+    (void)arg;
 }
 
-void Server::Nick()
+void Server::Nick(std::string arg)
 {
+    std::stringstream stream(arg);
+    std::string cmd_name;
+    std::string nick_name;
 
+    if (stream)
+    {
+        stream >> cmd_name;
+    }
+    if (stream)
+    {
+        stream >> nick_name;
+    }
 }
 
-void Server::User()
+void Server::User(std::string arg)
 {
+    std::stringstream stream(arg);
+    std::string cmd_name;
+    std::string user_name;
 
+    if (stream)
+    {
+        stream >> cmd_name;
+    }
+    if (stream)
+    {
+        stream >> user_name;
+        if (user_name[0] != ':')
+        {
+            std::cout << "USER :username" << std::endl;
+        }
+    }
 }
 
-void Server::Kick()
+void Server::Kick(std::string arg)
 {
-
+    (void)arg;
 }
 
-void Server::Invite()
+void Server::Invite(std::string arg)
 {
-    
+    (void)arg;
 }
 
-void Server::Topic()
+void Server::Topic(std::string arg)
 {
-    
+    (void)arg;
 }
 
-void Server::Mode()
+void Server::Mode(std::string arg)
 {
-    
+    (void)arg;
 }
 
-void Server::Join()
+void Server::Join(std::string arg)
 {
-    
+    (void)arg;
 }
 
-void Server::PrivMsg()
+void Server::PrivMsg(std::string arg)
 {
-    
+    (void)arg;
 }
 
 void Server::checkCommand(int sd, char *buffer)
 {
     std::string arg = buffer;
     if (arg.compare(0, 4, "JOIN") == 0)
-        Join();
+        Join(arg);
     if (arg.compare(0, 7, "PRIVMSG") == 0)
-        PrivMsg();
+        PrivMsg(arg);
     if (arg.compare(0, 6, "INVITE") == 0)
-        Invite();
+        Invite(arg);
     if (arg.compare(0, 4, "KICK") == 0)
-        Kick();
+        Kick(arg);
     if (arg.compare(0, 4, "MODE") == 0)
-        Mode();
+        Mode(arg);
     if (arg.compare(0, 5, "TOPIC") == 0)
-        Topic();
+        Topic(arg);
     if (arg.compare(0, 4, "NICK") == 0)
-        Nick();
+        Nick(arg);
     if (arg.compare(0, 4, "PASS") == 0)
-        Pass();
+        Pass(arg);
     if (arg.compare(0, 4, "USER") == 0)
-        User();
+        User(arg);
     std::cout << "Received data from client, socket fd: " << sd << ", Data: " << buffer << std::endl;
 }
 

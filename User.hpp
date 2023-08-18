@@ -10,6 +10,7 @@
 # include <vector>
 # include <algorithm>
 # include <arpa/inet.h>
+# include <sstream>
 
 class User
 {
