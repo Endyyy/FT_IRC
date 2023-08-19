@@ -1,31 +1,5 @@
 #include "tools.hpp"
 
-// bool	isInt(char *av)
-// {
-// 	std::string str = av;
-//     if (str.size() > 4 || str.empty())
-//     {
-//         return (true);
-//     }
-// 	for (int i = 0; str[i]; i++)
-// 	{
-// 		if (!isdigit(str[i]))
-// 			return (true);
-// 	}
-//     if (atoi(av) > 9999)
-//     {
-//         return (true);
-//     }
-// 	return (false);
-// }
-
-// int checkArgs(char **av)
-// {
-//     if (isInt(av[1]))
-//         return (1);
-//     return (0);
-// }
-
 bool    have_whitespaces(std::string arg)
 {
     for (unsigned long i = 0; i < arg.size(); i++)
@@ -40,30 +14,30 @@ bool    check_port(const char* arg)
 {
     std::string copy = arg;
     char* endptr;
-    long val = 0;
+    long value = 0;
 
-    //one: taille arg comprise entre 1 et 4 (voir si 5)
+    //check if string size ranging from 1 to 5
     if (copy.empty() || copy.size() > LEN_PORT_MAX)
         return (false);
 
-    //two: que des chiffres
-    val = std::strtol(arg, &endptr, 10);
-    if (*endptr != '\0')
+    //check if digits only
+    value = std::strtol(arg, &endptr, 10);
+    if (*endptr != '\0' || arg[0] == '+')
         return (false);
 
-    //three: atoisable entre PORT_MIN jusqu'a PORT_MAX (voir laquelle)
-    if (val < PORT_MIN || val > PORT_MAX)
+    //check if port ranging from 1024 to 65536
+    if (value < PORT_MIN || value > PORT_MAX)
         return (false);
     return (true);
 }
 
 bool    check_password(std::string arg)
 {    
-    //one: taille comprise entre LEN_PWD_MIN et LEN_PWD_MAX
+    //check if string size ranging from LEN_PWD_MIN and LEN_PORT_MAX
     if (arg.empty() || arg.size() < LEN_PWD_MIN || arg.size() > LEN_PORT_MAX)
         return (false);
 
-    //two: aucun whitespaces
+    //check if no whitespaces
     if (!have_whitespaces(arg))
         return (false);
         

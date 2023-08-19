@@ -1,31 +1,22 @@
 #include "User.hpp"
 
-// private:
-// std::string _nickname;
-// std::string _username;
-// int         _user_socket;
+// attributes:
+// std::string const    _nickname;
+// std::string          _username;
+// int                  _user_socket;
 
-User::User()
-{
-}
+////////////////////////////////////////////////////////////////////////////////
+//  Forbidden :
+User::User() {}
+User::User(User const& source) { (void)source; }
+User& User::operator=(User const& source) { (void)source; return (*this); }
+////////////////////////////////////////////////////////////////////////////////
 
 User::User(std::string const nickname) : _nickname(nickname)
 {
     _username = "";
     _user_socket = 0;
     std::cout << "New User created. NICK set as " << nickname << std::endl;
-}
-
-User::User(User const& source)
-{
-    (void)source;
-    *this = User("");
-}
-
-User& User::operator=(User const& source)
-{
-    (void)source;
-    return (*this);
 }
 
 User::~User()

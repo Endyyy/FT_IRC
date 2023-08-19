@@ -19,7 +19,6 @@ class User
         std::string const   _nickname;
         std::string         _username;
         int                 _user_socket;
-        // std::map<std::string, bool> _channel_privileges;
 
         User();
         User(User const& source);

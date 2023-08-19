@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include "Server.hpp"
 #include "User.hpp"
+#include "Channel.hpp"
 #include "tools.hpp"
 
 void run_server(int port, std::string servPass)

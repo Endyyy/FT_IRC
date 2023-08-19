@@ -18,9 +18,6 @@
 # include <arpa/inet.h>
 # include <cctype>
 
-// bool	isInt(char *av);
-// int     checkArgs(char **av);
-
 bool    check_port(const char* arg);
 bool    check_password(std::string arg);
 bool    have_whitespaces(std::string arg);

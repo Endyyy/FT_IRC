@@ -6,6 +6,7 @@ CFLAGS = -Wall -Werror -Wextra -std=c++98
 
 SRCS =  Server.cpp \
 		User.cpp \
+		Channel.cpp \
 		tools.cpp \
 		main.cpp \
 
