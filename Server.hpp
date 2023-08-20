@@ -13,16 +13,38 @@
 # include <arpa/inet.h>
 # include <sstream>
 
+# define MAX_CLIENTS 5000
+# define BUFFER_SIZE 1024
+
 class Server
 {
     private:
+        int const           _port;
+        std::string const   _serverPassword;
+        int const           _serverSocket;
+        sockaddr_in         _address;
+
+        int maxSocket;//test
+        int activity;//test
+        int newSocket;//test
+        fd_set readfds;//test
+
+        Server();
         Server(Server const& source);
         Server& operator=(Server const& source);
 
     public:
-
-        Server();
+        Server(int port, std::string serverPassword);
         ~Server();
+
+        void    bind_socket_to_address();
+        void    start_listening();
+        void    run();
+
+        void    set_address();
+        int     get_serverSocket() const;
+
+
         void    cmdPass(std::string arg, int sd);
         void    cmdNick(std::string arg, int sd);
         void    cmdUser(std::string arg, int sd);
@@ -36,6 +58,10 @@ class Server
         void    checkCommand(int sd, char *buffer);
 
         //ERROR_MSGS
+
+        class ERR_INVALIDSOCKET :       public std::exception { virtual const char* what() const throw(); };
+        class ERR_BINDFAILURE :         public std::exception { virtual const char* what() const throw(); };
+        class ERR_LISTENINGFAILURE :    public std::exception { virtual const char* what() const throw(); };
 
         class ERR_ALREADYREGISTRED :    public std::exception { virtual const char* what() const throw(); };
         class ERR_BADCHANMASK :         public std::exception { virtual const char* what() const throw(); };
