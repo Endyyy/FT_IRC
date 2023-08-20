@@ -2,6 +2,7 @@
 # define SERVER_HPP
 
 # include "Channel.hpp"
+# include "User.hpp"
 # include <iostream>
 # include <stdexcept>
 # include <cstring>
@@ -9,11 +10,12 @@
 # include <cstdio>
 # include <unistd.h>
 # include <vector>
+# include <map>
 # include <algorithm>
 # include <arpa/inet.h>
 # include <sstream>
 
-# define MAX_CLIENTS 5000
+# define MAX_CLIENTS 100
 # define BUFFER_SIZE 1024
 
 class Server
@@ -23,11 +25,11 @@ class Server
         std::string const   _serverPassword;
         int const           _serverSocket;
         sockaddr_in         _address;
+        fd_set              _readfds;
+        int                 _topSocket;
 
-        int maxSocket;//test
-        int activity;//test
-        int newSocket;//test
-        fd_set readfds;//test
+        std::map<int, User*> _clients;
+        // std::vector<int> _clients(MAX_CLIENTS, 0);
 
         Server();
         Server(Server const& source);
@@ -41,6 +43,11 @@ class Server
         void    start_listening();
         void    run();
 
+        void    reset_fd_set();
+        void    waiting_for_activity();
+        bool    check_server_activity();
+        int     add_user_to_server();
+        std::string    read_from_user(int userSocket, char const* sentence);
         void    set_address();
 
 
@@ -61,6 +68,8 @@ class Server
         class ERR_INVALIDSOCKET :       public std::exception { virtual const char* what() const throw(); };
         class ERR_BINDFAILURE :         public std::exception { virtual const char* what() const throw(); };
         class ERR_LISTENINGFAILURE :    public std::exception { virtual const char* what() const throw(); };
+        class ERR_SELECTFAILURE :       public std::exception { virtual const char* what() const throw(); };
+        class ERR_ACCEPTFAILURE :       public std::exception { virtual const char* what() const throw(); };
 
         class ERR_ALREADYREGISTRED :    public std::exception { virtual const char* what() const throw(); };
         class ERR_BADCHANMASK :         public std::exception { virtual const char* what() const throw(); };

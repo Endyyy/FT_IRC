@@ -1,3 +1,4 @@
 checklist avant d'oublier pour rendu final:
 
 -	verifier formes copliennes
+- gerer les signaux

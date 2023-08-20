@@ -13,6 +13,7 @@ _port(port), _serverPassword(serverPassword), _serverSocket(socket(AF_INET, SOCK
     if (_serverSocket == -1)
         throw (ERR_INVALIDSOCKET());
     set_address();
+    std::cout << "show value : port " << _port << "; _serverSocket " << _serverSocket << std::endl;
     std::cout << "Server created" << std::endl;
 }
 
@@ -44,163 +45,180 @@ void    Server::start_listening()
     std::cout << "Server started. Waiting for connections..." << std::endl;
 }
 
+void    Server::reset_fd_set()
+{
+    // Erase all preexisting socket values
+    FD_ZERO(&_readfds);
+
+    // Add the server socket to the set
+    FD_SET(_serverSocket, &_readfds);
+    _topSocket = _serverSocket;
+
+    // Add clients sockets to the set
+    for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+    {
+        if (it->first > 0)
+            FD_SET(it->first, &_readfds);
+        if (it->first > _topSocket)
+            _topSocket = it->first;
+    }
+}
+
+void    Server::waiting_for_activity()
+{
+    int activity = select(_topSocket + 1, &_readfds, NULL, NULL, NULL);
+    if (activity < 0)
+        throw (ERR_SELECTFAILURE());
+}
+
+bool    Server::check_server_activity()
+{
+    return (FD_ISSET(_serverSocket, &_readfds));
+}
+
+int    Server::add_user_to_server()
+{
+    int tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, NULL);//NULL or socklen_t &addrLength = sizeof(_address);
+    if (tmp_socket < 0)
+        throw (ERR_ACCEPTFAILURE());
+    _clients.insert(std::make_pair(tmp_socket, new User(tmp_socket)));
+    std::cout << "New connection, socket fd: " << tmp_socket << ", IP: " << inet_ntoa(_address.sin_addr)
+    << ", Port: " << ntohs(_address.sin_port) << std::endl;
+    return (tmp_socket);
+}
+
+std::string    Server::read_from_user(int userSocket, char const* sentence)
+{
+    std::string str;
+    char buffer[BUFFER_SIZE] = {0};
+
+    // send(userSocket, "PASS <password>\n", strlen("PASS <password>\n"), 0);//previous
+    send(userSocket, sentence, strlen(sentence), 0);
+    int len = read(userSocket, buffer, BUFFER_SIZE);
+    if (len > 0)//////////////check si taille adaptée à tous les cas de figures
+    {
+        str = buffer;
+        str.erase(str.size() - 1);///////voir le meilleure moyen de trim le str
+        // str.erase(std::remove(str.begin(), str.end(), '\n'), userPassword.end()); // Remove newline character
+        return (str);
+    }
+    return ("");
+}
+
+
 void    Server::run()
 {
-    std::vector<int> clientSockets(MAX_CLIENTS, 0);
-    // std::map<int, User&> clients(MAX_CLIENTS, 0);
+    // std::vector<int> _clients(MAX_CLIENTS, 0);
 
     while (true)
     {
-        FD_ZERO(&readfds);
-
-        // Add the server socket to the set
-        FD_SET(_serverSocket, &readfds);
-        maxSocket = _serverSocket;
-
-        // Add child sockets to the set
-        for (int i = 0; i < MAX_CLIENTS; ++i)
-        {
-            int sd = clientSockets[i];
-            if (sd > 0)
-                FD_SET(sd, &readfds);
-            if (sd > maxSocket)
-                maxSocket = sd;
-        }
-
-        // Wait for activity on any of the sockets
-        activity = select(maxSocket + 1, &readfds, NULL, NULL, NULL);
-        if (activity < 0)
-        {
-            std::cerr << "Select error." << std::endl;
-            return ;
-        }
+        reset_fd_set();
+        waiting_for_activity();
 
         // New incoming connection
-        if (FD_ISSET(_serverSocket, &readfds))
+        if (check_server_activity())
         {
-            socklen_t addrLength = sizeof(_address);
-            if ((newSocket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength)) < 0)
-            {
-                std::cerr << "Accept error." << std::endl;
-                return ;
-            }
-
-            std::cout << "New connection, socket fd: " << newSocket << ", IP: " << inet_ntoa(_address.sin_addr) << ", Port: " << ntohs(_address.sin_port) << std::endl;
-
-            // Ask the client for the password
-            std::string clientPassword;
-            std::string clientUsername;
-            std::string clientNickname;
-            char passwordBuffer[BUFFER_SIZE] = {0};
-            char usernameBuffer[BUFFER_SIZE] = {0};
-            char nicknameBuffer[BUFFER_SIZE] = {0};
-            send(newSocket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
-            int valread = read(newSocket, passwordBuffer, BUFFER_SIZE);
-            if (valread > 0)
-            {
-                clientPassword = passwordBuffer;
-                clientPassword.erase(std::remove(clientPassword.begin(), clientPassword.end(), '\n'), clientPassword.end()); // Remove newline character
-            } else
+            int userSocket = add_user_to_server();
+            std::string sample = read_from_user(userSocket, "PASS <password>\n");
+            // Check if password exist
+            if (sample.empty())
             {
                 // Error reading password
                 std::cerr << "Error reading password from client." << std::endl;
-                close(newSocket);
-                continue;
+                close(userSocket);
+                continue;////////////////////faut-il supprimer le user de la map dans ce cas ?
             }
             // Check if the entered password matches the server's password
-            if (clientPassword == _serverPassword)
-            {
-                // Password match, accept the connection
-                std::cout << "Client authenticated. Connection accepted." << std::endl;
-                // Add new socket to array of client sockets
-                for (int i = 0; i < MAX_CLIENTS; ++i)
-                {
-                    if (clientSockets[i] == 0)
-                    {
-                        clientSockets[i] = newSocket;
-                        break;
-                    }
-                }
-                send(newSocket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
-                valread = read(newSocket, nicknameBuffer, BUFFER_SIZE);
-                if (valread > 0)
-                {
-                    clientNickname = nicknameBuffer;
-                    clientNickname.erase(std::remove(clientNickname.begin(), clientNickname.end(), '\n'), clientNickname.end()); // Remove newline character
-                }
-                else
-                {
-                    // Error reading nickname
-                    std::cerr << "Error reading nickname from client." << std::endl;
-                    close(newSocket);
-                    continue;
-                }
-                send(newSocket, "USER <username>\n", strlen("USER <username>\n"), 0);
-                valread = read(newSocket, usernameBuffer, BUFFER_SIZE);
-                if (valread > 0)
-                {
-                    clientUsername = usernameBuffer;
-                    clientUsername.erase(std::remove(clientUsername.begin(), clientUsername.end(), '\n'), clientUsername.end()); // Remove newline character
-                }
-                else
-                {
-                    // Error reading username
-                    std::cerr << "Error reading username from client." << std::endl;
-                    close(newSocket);
-                    continue;
-                }
-            }
-            else
+            if (sample != _serverPassword)
             {
                 // Password doesn't match, reject the connection
                 std::cout << "Client authentication failed. Connection rejected." << std::endl;
-                close(newSocket);
-                return ;
+                close(userSocket);
+                continue ;//////////////pas continue?
+                // return ;
             }
+
+            // Password match, accept the connection
+            std::cout << "Client authenticated. Connection accepted." << std::endl;
 
             // Add new socket to array of client sockets
-            for (int i = 0; i < MAX_CLIENTS; ++i)
+            // for (int i = 0; i < MAX_CLIENTS; ++i)
+            // {
+            //     if (_clients[i] == 0)
+            //     {
+            //         _clients[i] = userSocket;
+            //         break;
+            //     }
+            // }
+           
+            sample = read_from_user(userSocket, "NICK <nickname>\n");
+            if (sample.empty())
             {
-                if (clientSockets[i] == 0)
-                {
-                    clientSockets[i] = newSocket;
-                    break;
-                }
+                // Error reading nickname
+                std::cerr << "Error reading nickname from client." << std::endl;
+                close(userSocket);
+                continue;
             }
+            //////////manque check si nickname dispo, pas de doublons possibles?
+            //////////manque maj du user pour ajouter nickname?
+
+            sample = read_from_user(userSocket, "USER <username>\n");
+            if (sample.empty())
+            {
+                // Error reading username
+                std::cerr << "Error reading username from client." << std::endl;
+                close(userSocket);
+                continue;
+            }
+            //////////manque maj du user pour ajouter username?
+
+            
+            // Add new socket to array of client sockets
+            // for (int i = 0; i < MAX_CLIENTS; ++i)
+            // {
+            //     if (_clients[i] == 0)
+            //     {
+            //         _clients[i] = userSocket;
+            //         break;
+            //     }
+            // }
+            ///////////////////////deja fait?
         }
 
+        ///////////////////pas encore fait la suite
+
         // Handle data from clients
-        for (int i = 0; i < MAX_CLIENTS; ++i)
+        for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
         {
-            int sd = clientSockets[i];
-            if (FD_ISSET(sd, &readfds))
+            int client_socket = it->first;
+            if (FD_ISSET(client_socket, &_readfds))
             {
                 char buffer[BUFFER_SIZE] = {0};
-                int valread = read(sd, buffer, BUFFER_SIZE);
+                int valread = read(client_socket, buffer, BUFFER_SIZE);
                 if (valread == 0)
                 {
                     // Client disconnected
-                    std::cout << "Client disconnected, socket fd: " << sd << std::endl;
-                    close(sd);
-                    clientSockets[i] = 0;
+                    std::cout << "Client disconnected, socket fd: " << client_socket << std::endl;
+                    close(client_socket);
+                    // it->first = 0;////////////impossible. modifier par suppr un user
                 }
                 else if (valread == -1)
                 {
                     // Error or abrupt disconnection
-                    std::cerr << "Error reading data from client, socket fd: " << sd << std::endl;
-                    close(sd);
-                    clientSockets[i] = 0;
+                    std::cerr << "Error reading data from client, socket fd: " << client_socket << std::endl;
+                    close(client_socket);
+                    // it->first = 0;////////////impossible. modifier par suppr un user
                 }
                 else {
                     // Handle data from the client
-                    checkCommand(sd, buffer);
+                    checkCommand(client_socket, buffer);
                 }
             }
         }
     }
 }
 
-void Server::cmdPass(std::string arg, int sd)
+void Server::cmdPass(std::string arg, int client_socket)
 {
     std::stringstream stream(arg);
     std::string cmd_name;
@@ -216,7 +234,7 @@ void Server::cmdPass(std::string arg, int sd)
         stream >> passwd;
         if (passwd[0] == 0)
         {
-            send(sd, "PASS <password>\n", strlen("PASS <password>\n"), 0);
+            send(client_socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
             return ;
         }
     }
@@ -225,12 +243,12 @@ void Server::cmdPass(std::string arg, int sd)
         stream >> end;
         if (end[0])
         {
-            send(sd, "PASS <password>\n", strlen("PASS <password>\n"), 0);
+            send(client_socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
         }
     }
 }
 
-void Server::cmdNick(std::string arg, int sd)
+void Server::cmdNick(std::string arg, int client_socket)
 {
     std::stringstream stream(arg);
     std::string cmd_name;
@@ -246,7 +264,7 @@ void Server::cmdNick(std::string arg, int sd)
         stream >> nick_name;
         if (nick_name[0] == 0)
         {
-            send(sd, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
+            send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
             return ;
         }
     }
@@ -255,12 +273,12 @@ void Server::cmdNick(std::string arg, int sd)
         stream >> end;
         if (end[0])
         {
-            send(sd, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
+            send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
         }
     }
 }
 
-void Server::cmdUser(std::string arg, int sd)
+void Server::cmdUser(std::string arg, int client_socket)
 {
     std::stringstream stream(arg);
     std::string cmd_name;
@@ -276,7 +294,7 @@ void Server::cmdUser(std::string arg, int sd)
         stream >> user_name;
         if (user_name[0] != ':')
         {
-            send(sd, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+            send(client_socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
             return ;
         }
     }
@@ -285,45 +303,45 @@ void Server::cmdUser(std::string arg, int sd)
         stream >> end;
         if (end[0])
         {
-            send(sd, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+            send(client_socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
         }
     }
 }
 
-void Server::cmdKick(std::string arg, int sd)
+void Server::cmdKick(std::string arg, int client_socket)
 {
     (void)arg;
-    (void)sd;
+    (void)client_socket;
 }
 
-void Server::cmdInvite(std::string arg, int sd)
+void Server::cmdInvite(std::string arg, int client_socket)
 {
     (void)arg;
-    (void)sd;
+    (void)client_socket;
 }
 
-void Server::cmdTopic(std::string arg, int sd)
+void Server::cmdTopic(std::string arg, int client_socket)
 {
     (void)arg;
-    (void)sd;
+    (void)client_socket;
 }
 
-void Server::cmdMode(std::string arg, int sd)
+void Server::cmdMode(std::string arg, int client_socket)
 {
     (void)arg;
-    (void)sd;
+    (void)client_socket;
 }
 
-void Server::cmdJoin(std::string arg, int sd)
+void Server::cmdJoin(std::string arg, int client_socket)
 {
     (void)arg;
-    (void)sd;
+    (void)client_socket;
 }
 
-void Server::cmdPrivMsg(std::string arg, int sd)
+void Server::cmdPrivMsg(std::string arg, int client_socket)
 {
     (void)arg;
-    (void)sd;
+    (void)client_socket;
 }
 
 void Server::cmdQuit()
@@ -331,30 +349,30 @@ void Server::cmdQuit()
 
 }
 
-void Server::checkCommand(int sd, char *buffer)
+void Server::checkCommand(int client_socket, char *buffer)
 {
     std::string arg = buffer;
     if (arg.compare(0, 4, "JOIN") == 0)
-        cmdJoin(arg, sd);
+        cmdJoin(arg, client_socket);
     if (arg.compare(0, 7, "PRIVMSG") == 0)
-        cmdPrivMsg(arg, sd);
+        cmdPrivMsg(arg, client_socket);
     if (arg.compare(0, 6, "INVITE") == 0)
-        cmdInvite(arg, sd);
+        cmdInvite(arg, client_socket);
     if (arg.compare(0, 4, "KICK") == 0)
-        cmdKick(arg, sd);
+        cmdKick(arg, client_socket);
     if (arg.compare(0, 4, "MODE") == 0)
-        cmdMode(arg, sd);
+        cmdMode(arg, client_socket);
     if (arg.compare(0, 5, "TOPIC") == 0)
-        cmdTopic(arg, sd);
+        cmdTopic(arg, client_socket);
     if (arg.compare(0, 4, "NICK") == 0)
-        cmdNick(arg, sd);
+        cmdNick(arg, client_socket);
     if (arg.compare(0, 4, "PASS") == 0)
-        cmdPass(arg, sd);
+        cmdPass(arg, client_socket);
     if (arg.compare(0, 4, "USER") == 0)
-        cmdUser(arg, sd);
+        cmdUser(arg, client_socket);
     if (arg.compare(0, 4, "Quit") == 0)
         cmdQuit();
-    std::cout << "Received data from client, socket fd: " << sd << ", Data: " << buffer << std::endl;
+    std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << buffer << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -364,6 +382,10 @@ const char *Server::ERR_INVALIDSOCKET::what() const throw()     { return "Error 
 const char *Server::ERR_BINDFAILURE::what() const throw()       { return "Failed to bind socket to address"; }
 
 const char *Server::ERR_LISTENINGFAILURE::what() const throw()  { return "Socket failed to start listening"; }
+
+const char *Server::ERR_SELECTFAILURE::what() const throw()       { return "Select error"; }
+
+const char *Server::ERR_ACCEPTFAILURE::what() const throw()       { return "Accept error"; }
 
 
 

@@ -30,11 +30,10 @@ class User
 
         void    set_username(std::string username);
         void    set_nickname(std::string username);
-        void    set_userSocket(int user_socket);
 
-        std::string getNickname() const;
-        std::string getUsername() const;
-        int         getUser_socket() const;
+        std::string get_nickname() const;
+        std::string get_username() const;
+        int         get_userSocket() const;
 };
 
 #endif

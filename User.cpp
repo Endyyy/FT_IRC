@@ -32,17 +32,17 @@ void    User::set_nickname(std::string nickname)
     _nickname = nickname;
 }
 
-std::string User::getNickname() const
+std::string User::get_nickname() const
 {
     return (_nickname);
 }
 
-std::string User::getUsername() const
+std::string User::get_username() const
 {
     return (_username);
 }
 
-int         User::getUser_socket() const
+int         User::get_userSocket() const
 {
     return (_userSocket);
 }

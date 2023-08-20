@@ -48,10 +48,10 @@ void Channel::removeUser(const User& user)
 int Channel::getUserPrivilege(const User& user) const
 {
     (void)user;//delete
-    std::map<std::string, User&>::const_iterator it = _reg_users.find(user.getUsername());
+    std::map<std::string, User&>::const_iterator it = _reg_users.find(user.get_username());
     if (it != _reg_users.end())
     {
-        return it->second.getUser_socket();
+        return it->second.get_userSocket();
     }
     return -1;
 }
