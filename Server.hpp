@@ -42,7 +42,6 @@ class Server
         void    run();
 
         void    set_address();
-        int     get_serverSocket() const;
 
 
         void    cmdPass(std::string arg, int sd);

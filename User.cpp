@@ -1,22 +1,20 @@
 #include "User.hpp"
 
 // attributes:
-// std::string const    _nickname;
-// std::string          _username;
-// int                  _user_socket;
+// std::string _nickname;
+// std::string _username;
+// int const   _userSocket;
 
 ////////////////////////////////////////////////////////////////////////////////
 //  Forbidden :
-User::User() {}
-User::User(User const& source) { (void)source; }
+User::User() : _userSocket(0) {}
+User::User(User const& source) : _userSocket(0) { (void)source; }
 User& User::operator=(User const& source) { (void)source; return (*this); }
 ////////////////////////////////////////////////////////////////////////////////
 
-User::User(std::string const nickname) : _nickname(nickname)
+User::User(int const socket) : _userSocket(socket)
 {
-    _username = "";
-    _user_socket = 0;
-    std::cout << "New User created. NICK set as " << nickname << std::endl;
+    std::cout << "New User created. User socket is " << _userSocket << std::endl;
 }
 
 User::~User()
@@ -24,14 +22,14 @@ User::~User()
     std::cout << _nickname << " has been destroyed" << std::endl;
 }
 
-void    User::setUsername(std::string username)
+void    User::set_username(std::string username)
 {
     _username = username;
 }
 
-void    User::setUser_socket(int user_socket)
+void    User::set_nickname(std::string nickname)
 {
-    _user_socket = user_socket;
+    _nickname = nickname;
 }
 
 std::string User::getNickname() const
@@ -46,5 +44,5 @@ std::string User::getUsername() const
 
 int         User::getUser_socket() const
 {
-    return (_user_socket);
+    return (_userSocket);
 }

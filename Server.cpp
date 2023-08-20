@@ -31,11 +31,6 @@ void    Server::set_address()
     _address.sin_port = htons(_port);
 }
 
-int     Server::get_serverSocket() const
-{
-    return (_serverSocket);
-}
-
 void    Server::bind_socket_to_address()
 {
     if (bind(_serverSocket, (struct sockaddr *)&_address, sizeof(_address)) < 0)
@@ -52,14 +47,15 @@ void    Server::start_listening()
 void    Server::run()
 {
     std::vector<int> clientSockets(MAX_CLIENTS, 0);
+    // std::map<int, User&> clients(MAX_CLIENTS, 0);
 
     while (true)
     {
         FD_ZERO(&readfds);
 
         // Add the server socket to the set
-        FD_SET(get_serverSocket(), &readfds);
-        maxSocket = get_serverSocket();
+        FD_SET(_serverSocket, &readfds);
+        maxSocket = _serverSocket;
 
         // Add child sockets to the set
         for (int i = 0; i < MAX_CLIENTS; ++i)
@@ -80,10 +76,10 @@ void    Server::run()
         }
 
         // New incoming connection
-        if (FD_ISSET(get_serverSocket(), &readfds))
+        if (FD_ISSET(_serverSocket, &readfds))
         {
             socklen_t addrLength = sizeof(_address);
-            if ((newSocket = accept(get_serverSocket(), (struct sockaddr *)&_address, &addrLength)) < 0)
+            if ((newSocket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength)) < 0)
             {
                 std::cerr << "Accept error." << std::endl;
                 return ;
