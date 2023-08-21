@@ -126,7 +126,7 @@ void    Server::run()
                 // Error reading password
                 std::cerr << "Error reading password from client." << std::endl;
                 close(userSocket);
-                continue;////////////////////faut-il supprimer le user de la map dans ce cas ?
+                continue;////////////////////faut-il supprimer le user de la map dans ce cas ? // On supprime direct
             }
             // Check if the entered password matches the server's password
             if (sample != _serverPassword)
@@ -134,7 +134,7 @@ void    Server::run()
                 // Password doesn't match, reject the connection
                 std::cout << "Client authentication failed. Connection rejected." << std::endl;
                 close(userSocket);
-                continue ;//////////////pas continue?
+                continue ;//////////////pas continue? // Si 
                 // return ;
             }
 
@@ -159,8 +159,8 @@ void    Server::run()
                 close(userSocket);
                 continue;
             }
-            //////////manque check si nickname dispo, pas de doublons possibles?
-            //////////manque maj du user pour ajouter nickname?
+            //////////manque check si nickname dispo, pas de doublons possibles? // On fait direct dans la commande NICK et on l'appelle ici
+            //////////manque maj du user pour ajouter nickname?                  // On fait direct dans la commande NICK et on l'appelle ici
 
             sample = read_from_user(userSocket, "USER <username>\n");
             if (sample.empty())
@@ -170,7 +170,7 @@ void    Server::run()
                 close(userSocket);
                 continue;
             }
-            //////////manque maj du user pour ajouter username?
+            //////////manque maj du user pour ajouter username? // On fait direct dans la commande USER et on l'appelle ici
 
             
             // Add new socket to array of client sockets
@@ -182,7 +182,7 @@ void    Server::run()
             //         break;
             //     }
             // }
-            ///////////////////////deja fait?
+            ///////////////////////deja fait? // Oui ca doit etre le nouvelle equivalent "int userSocket = add_user_to_server(); ligne 121"
         }
 
         ///////////////////pas encore fait la suite
