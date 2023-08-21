@@ -78,7 +78,8 @@ bool    Server::check_server_activity()
 
 type_sock    Server::add_user_to_server()
 {
-    type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, NULL);//NULL or socklen_t &addrLength = sizeof(_address);
+    socklen_t addrLength = sizeof(_address);
+    type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength);//erreur recurrente de accept si NULL;
     if (tmp_socket < 0)
         throw (ERR_ACCEPTFAILURE());
     _clients.insert(std::make_pair(tmp_socket, new User(tmp_socket)));
