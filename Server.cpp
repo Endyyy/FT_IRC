@@ -76,18 +76,24 @@ bool    Server::check_server_activity()
     return (FD_ISSET(_serverSocket, &_readfds));
 }
 
-int    Server::add_user_to_server()
+type_sock    Server::add_user_to_server()
 {
-    int tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, NULL);//NULL or socklen_t &addrLength = sizeof(_address);
+    type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, NULL);//NULL or socklen_t &addrLength = sizeof(_address);
     if (tmp_socket < 0)
         throw (ERR_ACCEPTFAILURE());
     _clients.insert(std::make_pair(tmp_socket, new User(tmp_socket)));
-    std::cout << "New connection, socket fd: " << tmp_socket << ", IP: " << inet_ntoa(_address.sin_addr)
+    std::cout << "New connection, socket fd: " << tmp_socket
+	<< ", IP: " << inet_ntoa(_address.sin_addr)
     << ", Port: " << ntohs(_address.sin_port) << std::endl;
     return (tmp_socket);
 }
 
-std::string    Server::read_from_user(int userSocket, char const* sentence)
+// void    Server::remove_user_from_server()
+// {
+
+// }
+
+std::string    Server::read_from_user(type_sock userSocket, char const* sentence)
 {
     std::string str;
     char buffer[BUFFER_SIZE] = {0};
@@ -108,8 +114,6 @@ std::string    Server::read_from_user(int userSocket, char const* sentence)
 
 void    Server::run()
 {
-    // std::vector<int> _clients(MAX_CLIENTS, 0);
-
     while (true)
     {
         reset_fd_set();
@@ -118,23 +122,23 @@ void    Server::run()
         // New incoming connection
         if (check_server_activity())
         {
-            int userSocket = add_user_to_server();
-            std::string sample = read_from_user(userSocket, "PASS <password>\n");
+            type_sock	userSocket = add_user_to_server();
+            std::string	sample = read_from_user(userSocket, "PASS <password>\n");
             // Check if password exist
             if (sample.empty())
             {
                 // Error reading password
                 std::cerr << "Error reading password from client." << std::endl;
                 close(userSocket);
-                continue;////////////////////faut-il supprimer le user de la map dans ce cas ? // On supprime direct
+                continue;/// On doit supprimer le user
             }
             // Check if the entered password matches the server's password
             if (sample != _serverPassword)
             {
-                // Password doesn't match, reject the connection
+                // Wrong password, reject the connection
                 std::cout << "Client authentication failed. Connection rejected." << std::endl;
                 close(userSocket);
-                continue ;//////////////pas continue? // Si 
+                continue ;
                 // return ;
             }
 
@@ -150,7 +154,7 @@ void    Server::run()
             //         break;
             //     }
             // }
-           
+
             sample = read_from_user(userSocket, "NICK <nickname>\n");
             if (sample.empty())
             {
@@ -172,7 +176,7 @@ void    Server::run()
             }
             //////////manque maj du user pour ajouter username? // On fait direct dans la commande USER et on l'appelle ici
 
-            
+
             // Add new socket to array of client sockets
             // for (int i = 0; i < MAX_CLIENTS; ++i)
             // {
@@ -188,9 +192,9 @@ void    Server::run()
         ///////////////////pas encore fait la suite
 
         // Handle data from clients
-        for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+        for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
         {
-            int client_socket = it->first;
+            type_sock client_socket = it->first;
             if (FD_ISSET(client_socket, &_readfds))
             {
                 char buffer[BUFFER_SIZE] = {0};
@@ -218,12 +222,12 @@ void    Server::run()
     }
 }
 
-void Server::cmdPass(std::string arg, int client_socket) //FONCTION DOUBLE : le format peut te servir pour le passing de ta fonction check password
+void Server::cmdPass(std::string arg, type_sock client_socket) //FONCTION DOUBLE : le format peut te servir pour le passing de ta fonction check password
 {
-    std::stringstream stream(arg);
-    std::string cmd_name;
-    std::string passwd;
-    std::string end;
+    std::stringstream	stream(arg);
+    std::string			cmd_name;
+    std::string			passwd;
+    std::string			end;
 
     if (stream)
     {
@@ -247,17 +251,17 @@ void Server::cmdPass(std::string arg, int client_socket) //FONCTION DOUBLE : le 
         }
     }
     if (passwd.compare(this->_serverPassword))
-    { 
+    {
         send(client_socket, "Wrong password !\n", strlen("Wrong password !\n"), 0);
     }
 }
 
 void Server::cmdNick(std::string arg, int client_socket)
 {
-    std::stringstream stream(arg);
-    std::string cmd_name;
-    std::string nick_name;
-    std::string end;
+    std::stringstream	stream(arg);
+    std::string			cmd_name;
+    std::string			nick_name;
+    std::string			end;
 
     if (stream)
     {
@@ -304,10 +308,10 @@ void Server::cmdNick(std::string arg, int client_socket)
 
 void Server::cmdUser(std::string arg, int client_socket)
 {
-    std::stringstream stream(arg);
-    std::string cmd_name;
-    std::string user_name;
-    std::string end;
+    std::stringstream	stream(arg);
+    std::string			cmd_name;
+    std::string			user_name;
+    std::string			end;
 
     if (stream)
     {
@@ -401,78 +405,78 @@ void Server::checkCommand(int client_socket, char *buffer)
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ERROR_MSGS
-const char *Server::ERR_INVALIDSOCKET::what() const throw()     { return "Error creating socket"; }
+const char *Server::ERR_INVALIDSOCKET::what() const throw()		{ return "Error creating socket"; }
 
-const char *Server::ERR_BINDFAILURE::what() const throw()       { return "Failed to bind socket to address"; }
+const char *Server::ERR_BINDFAILURE::what() const throw()		{ return "Failed to bind socket to address"; }
 
-const char *Server::ERR_LISTENINGFAILURE::what() const throw()  { return "Socket failed to start listening"; }
+const char *Server::ERR_LISTENINGFAILURE::what() const throw()	{ return "Socket failed to start listening"; }
 
-const char *Server::ERR_SELECTFAILURE::what() const throw()       { return "Select error"; }
+const char *Server::ERR_SELECTFAILURE::what() const throw()		{ return "Select error"; }
 
-const char *Server::ERR_ACCEPTFAILURE::what() const throw()       { return "Accept error"; }
-
-
-
-const char *Server::ERR_ALREADYREGISTRED::what() const throw()  { return ("Already registered"); }
-
-const char *Server::ERR_CANNOTSENDTOCHAN::what() const throw()  { return ("<channel name> :Cannot send to channel"); }
-
-const char *Server::ERR_CHANOPRIVSNEEDED::what() const throw()  { return ("You're not channel operator"); }
-
-const char *Server::ERR_ERRONEUSNICKNAME::what() const throw()  { return ("Erroneous nickname"); }
-
-const char *Server::ERR_KEYSET::what() const throw()            { return ("<channel> :Channel key already set"); }
-
-const char *Server::ERR_NEEDMOREPARAMS::what() const throw()    { return ("Need more params"); }
-
-const char *Server::ERR_NICKNAMEINUSE::what() const throw()     { return ("Nickname is already in use"); }
-
-const char *Server::ERR_NOLOGIN::what() const throw()           { return ("<user> :User not logged in"); }
-
-const char *Server::ERR_NONICKNAMEGIVEN::what() const throw()   { return ("No nickname given"); }
-
-const char *Server::ERR_NORECIPIENT::what() const throw()       { return ("No recipient given (<command>)"); }
-
-const char *Server::ERR_NOSUCHCHANNEL::what() const throw()     { return ("No such channel"); }
-
-const char *Server::ERR_NOSUCHNICK::what() const throw()        { return ("No such nick/channel"); }
-
-const char *Server::ERR_NOTEXTTOSEND::what() const throw()      { return (":No text to send"); }
-
-const char *Server::ERR_NOTONCHANNEL::what() const throw()      { return ("You're not on that channel"); }
-
-const char *Server::ERR_NOTOPLEVEL::what() const throw()        { return ("<mask> :No toplevel domain specified"); }
-
-const char *Server::ERR_TOOMANYTARGET::what() const throw()     { return ("<target> :Duplicate recipients. No message delivered"); }
-
-const char *Server::ERR_USERONCHANNEL::what() const throw()     { return ("<user> <channel> :is already on channel"); }
-
-const char *Server::ERR_UNKNOWNMODE::what() const throw()       { return ("<char> :is unknown mode char to me"); }
-
-const char *Server::ERR_USERSDONTMATCH::what() const throw()    { return (":Cant change mode for other users"); }
-
-const char *Server::ERR_UMODEUNKNOWNFLAG::what() const throw()  { return (":Unknown MODE flag"); }
-
-const char *Server::ERR_WILDTOPLEVEL::what() const throw()      { return ("<mask> :Wildcard in toplevel domain"); }
+const char *Server::ERR_ACCEPTFAILURE::what() const throw()		{ return "Accept error"; }
 
 //-----------------
 
-const char *Server::RPL_AWAY::what() const throw()              { return ("<nick> :<away message>"); }
+const char *Server::ERR_ALREADYREGISTRED::what() const throw()	{ return ("Already registered"); }
 
-const char *Server::RPL_BANLIST::what() const throw()           { return ("<channel> <banid>"); }
+const char *Server::ERR_CANNOTSENDTOCHAN::what() const throw()	{ return ("<channel name> :Cannot send to channel"); }
 
-const char *Server::RPL_CHANNELMODEIS::what() const throw()     { return ("<channel> <mode> <mode params>"); }
+const char *Server::ERR_CHANOPRIVSNEEDED::what() const throw()	{ return ("You're not channel operator"); }
 
-const char *Server::RPL_ENDOFBANLIST::what() const throw()      { return ("<channel> :End of channel ban list"); }
+const char *Server::ERR_ERRONEUSNICKNAME::what() const throw()	{ return ("Erroneous nickname"); }
 
-const char *Server::RPL_INVITING::what() const throw()          { return ("<channel> <nick>"); }
+const char *Server::ERR_KEYSET::what() const throw()			{ return ("<channel> :Channel key already set"); }
 
-const char *Server::RPL_NOTOPIC::what() const throw()           { return ("<channel> :No topic is set"); }
+const char *Server::ERR_NEEDMOREPARAMS::what() const throw()	{ return ("Need more params"); }
 
-const char *Server::RPL_SUMMONING::what() const throw()         { return ("<user> :Summoning user to IRC"); }
+const char *Server::ERR_NICKNAMEINUSE::what() const throw()		{ return ("Nickname is already in use"); }
 
-const char *Server::RPL_TOPIC::what() const throw()             { return ("<channel> :<topic>"); }
+const char *Server::ERR_NOLOGIN::what() const throw()			{ return ("<user> :User not logged in"); }
 
-const char *Server::RPL_UMODEIS::what() const throw()           { return ("<user mode string>"); }
+const char *Server::ERR_NONICKNAMEGIVEN::what() const throw()	{ return ("No nickname given"); }
+
+const char *Server::ERR_NORECIPIENT::what() const throw()		{ return ("No recipient given (<command>)"); }
+
+const char *Server::ERR_NOSUCHCHANNEL::what() const throw()		{ return ("No such channel"); }
+
+const char *Server::ERR_NOSUCHNICK::what() const throw()		{ return ("No such nick/channel"); }
+
+const char *Server::ERR_NOTEXTTOSEND::what() const throw()		{ return (":No text to send"); }
+
+const char *Server::ERR_NOTONCHANNEL::what() const throw()		{ return ("You're not on that channel"); }
+
+const char *Server::ERR_NOTOPLEVEL::what() const throw()		{ return ("<mask> :No toplevel domain specified"); }
+
+const char *Server::ERR_TOOMANYTARGET::what() const throw()		{ return ("<target> :Duplicate recipients. No message delivered"); }
+
+const char *Server::ERR_USERONCHANNEL::what() const throw()		{ return ("<user> <channel> :is already on channel"); }
+
+const char *Server::ERR_UNKNOWNMODE::what() const throw()		{ return ("<char> :is unknown mode char to me"); }
+
+const char *Server::ERR_USERSDONTMATCH::what() const throw()	{ return (":Cant change mode for other users"); }
+
+const char *Server::ERR_UMODEUNKNOWNFLAG::what() const throw()	{ return (":Unknown MODE flag"); }
+
+const char *Server::ERR_WILDTOPLEVEL::what() const throw()		{ return ("<mask> :Wildcard in toplevel domain"); }
+
+//-----------------
+
+const char *Server::RPL_AWAY::what() const throw()				{ return ("<nick> :<away message>"); }
+
+const char *Server::RPL_BANLIST::what() const throw()			{ return ("<channel> <banid>"); }
+
+const char *Server::RPL_CHANNELMODEIS::what() const throw()		{ return ("<channel> <mode> <mode params>"); }
+
+const char *Server::RPL_ENDOFBANLIST::what() const throw()		{ return ("<channel> :End of channel ban list"); }
+
+const char *Server::RPL_INVITING::what() const throw()			{ return ("<channel> <nick>"); }
+
+const char *Server::RPL_NOTOPIC::what() const throw()			{ return ("<channel> :No topic is set"); }
+
+const char *Server::RPL_SUMMONING::what() const throw()			{ return ("<user> :Summoning user to IRC"); }
+
+const char *Server::RPL_TOPIC::what() const throw()				{ return ("<channel> :<topic>"); }
+
+const char *Server::RPL_UMODEIS::what() const throw()			{ return ("<user mode string>"); }
 
 ////////////////////////////////////////////////////////////////////////////////

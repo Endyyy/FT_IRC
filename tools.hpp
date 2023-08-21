@@ -18,6 +18,8 @@
 # include <arpa/inet.h>
 # include <cctype>
 
+typedef int type_sock;
+
 bool    check_port(const char* arg);
 bool    check_password(std::string arg);
 bool    have_whitespaces(std::string arg);
