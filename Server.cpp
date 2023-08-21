@@ -218,7 +218,7 @@ void    Server::run()
     }
 }
 
-void Server::cmdPass(std::string arg, int client_socket)
+void Server::cmdPass(std::string arg, int client_socket) //FONCTION DOUBLE : le format peut te servir pour le passing de ta fonction check password
 {
     std::stringstream stream(arg);
     std::string cmd_name;
@@ -245,6 +245,10 @@ void Server::cmdPass(std::string arg, int client_socket)
         {
             send(client_socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
         }
+    }
+    if (passwd.compare(this->_serverPassword))
+    { 
+        send(client_socket, "Wrong password !\n", strlen("Wrong password !\n"), 0);
     }
 }
 
@@ -274,8 +278,28 @@ void Server::cmdNick(std::string arg, int client_socket)
         if (end[0])
         {
             send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
+            return ;
         }
     }
+    for (std::map<int, User*>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+    {
+        User* user = it->second;
+        if (user->get_nickname() == nick_name)
+        {
+            send(client_socket, "Nickname already taken.\n", strlen("Nickname already taken.\n"), 0);
+            return ;
+        }
+    }
+    for (int i = 0; nick_name[i]; i++)
+    {
+        if (nick_name[i] < 32 || nick_name[i] == ':' || nick_name[i] == ';' || nick_name[i] == '!' || nick_name[i] == ',')
+        {
+            send(client_socket, "Erroneous nickname.\n", strlen("Erroneous nickname.\n"), 0);
+            return ;
+        }
+    }
+    User* user = _clients[client_socket];
+    user->set_nickname(nick_name);
 }
 
 void Server::cmdUser(std::string arg, int client_socket)

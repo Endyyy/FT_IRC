@@ -14,6 +14,7 @@
 # include <algorithm>
 # include <arpa/inet.h>
 # include <sstream>
+# include "User.hpp"
 
 # define MAX_CLIENTS 100
 # define BUFFER_SIZE 1024
