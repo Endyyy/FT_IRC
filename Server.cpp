@@ -66,6 +66,7 @@ void	Server::reset_fd_set()
 
 void	Server::waiting_for_activity()
 {
+	//gestion des signaux
 	int activity = select(_topSocket + 1, &_readfds, NULL, NULL, NULL);
 	if (activity < 0)
 		throw (ERR_SELECTFAILURE());
@@ -78,14 +79,16 @@ bool	Server::check_server_activity()
 
 type_sock	Server::add_user_to_server()
 {
-	// type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength);
-	type_sock	tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, NULL);
+	socklen_t addrLength = sizeof(_address);
+	type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength);
 	if (tmp_socket < 0)
-		throw (ERR_ACCEPTFAILURE());
+		throw (ERR_ACCEPTFAILURE());////////////////////douteux
 	_clients.insert(std::make_pair(tmp_socket, new User(tmp_socket)));
-	std::cout << "New connection, socket fd: " << tmp_socket
+	std::cout
+	<< "New connection, socket fd: " << tmp_socket
 	<< ", IP: " << inet_ntoa(_address.sin_addr)
-	<< ", Port: " << ntohs(_address.sin_port) << std::endl;
+	<< ", Port: " << ntohs(_address.sin_port)
+	<< std::endl;
 	return (tmp_socket);
 }
 
@@ -94,7 +97,7 @@ type_sock	Server::add_user_to_server()
 
 // }
 
-std::string	Server::read_from_user(type_sock userSocket, char const* sentence)
+std::string	Server::read_from_user(type_sock userSocket, char const* sentence)//obsolete ?
 {
 	std::string	str;
 	char		buffer[BUFFER_SIZE] = {0};
@@ -102,10 +105,14 @@ std::string	Server::read_from_user(type_sock userSocket, char const* sentence)
 	// send(userSocket, "PASS <password>\n", strlen("PASS <password>\n"), 0);//previous
 	send(userSocket, sentence, strlen(sentence), 0);
 	int len = read(userSocket, buffer, BUFFER_SIZE);
-	if (len > 0)//////////////check si taille adaptée à tous les cas de figures
+
+	//appeler le bloc essentiel cmdpass
+
+	std::cout << "test len " << len << " server cpp 105"<< std::endl;
+	str.erase(str.size() - 1);///////voir le meilleure moyen de trim le str
+	if (len > 0)
 	{
 		str = buffer;
-		str.erase(str.size() - 1);///////voir le meilleure moyen de trim le str
 		// str.erase(std::remove(str.begin(), str.end(), '\n'), userPassword.end()); // Remove newline character
 		return (str);
 	}
@@ -118,6 +125,7 @@ void	Server::run()
 	while (true)
 	{
 		reset_fd_set();
+		//gestion des signaux a implementer
 		waiting_for_activity();
 
 		// New incoming connection
@@ -126,23 +134,23 @@ void	Server::run()
 			type_sock	userSocket = add_user_to_server();
 			std::string	sample = read_from_user(userSocket, "PASS <password>\n");
 
-			// Check if password exist
-			if (sample.empty())
-			{
-				// Error reading password
-				std::cerr << "Error reading password from client." << std::endl;
-				close(userSocket);
-				continue;/// On doit supprimer le user
-			}
-			// Check if the entered password matches the server's password
-			if (sample != _serverPassword)
-			{
-				// Wrong password, reject the connection
-				std::cout << "Client authentication failed. Connection rejected." << std::endl;
-				close(userSocket);
-				continue ;
-				// return ;
-			}
+			// // Check if password exist
+			// if (sample.empty())
+			// {
+			// 	// Error reading password
+			// 	std::cerr << "Error reading password from client." << std::endl;
+			// 	close(userSocket);
+			// 	continue;/// On doit supprimer le user
+			// }
+			// // Check if the entered password matches the server's password
+			// if (sample != _serverPassword)
+			// {
+			// 	// Wrong password, reject the connection
+			// 	std::cout << "Client authentication failed. Connection rejected." << std::endl;
+			// 	close(userSocket);
+			// 	continue ;
+			// 	// return ;
+			// }
 
 			// Password match, accept the connection
 			std::cout << "Client authenticated. Connection accepted." << std::endl;
@@ -400,8 +408,9 @@ void Server::checkCommand(int client_socket, char *buffer)
 		cmdPass(arg, client_socket);
 	if (arg.compare(0, 4, "USER") == 0)
 		cmdUser(arg, client_socket);
-	if (arg.compare(0, 4, "Quit") == 0)
+	if (arg.compare(0, 4, "QUIT") == 0)
 		cmdQuit();
+	//prevoir else pour exemple "lol"
 	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << buffer << std::endl;
 }
 

@@ -72,10 +72,10 @@ class Server
 		class ERR_SELECTFAILURE :		public std::exception { virtual const char* what() const throw(); };
 		class ERR_ACCEPTFAILURE :		public std::exception { virtual const char* what() const throw(); };
 
-		class ERR_CANNOTREADPWD :		public std::exception { virtual const char* what() const throw(); };
-		class ERR_WRONGPASSWORD :		public std::exception { virtual const char* what() const throw(); };
-		class ERR_CANNOTREADNICKNAME :	public std::exception { virtual const char* what() const throw(); };
-		class ERR_CANNOTREADUSERNAME :	public std::exception { virtual const char* what() const throw(); };
+		// "Error reading password from client."class ERR_CANNOTREADPWD :		public std::exception { virtual const char* what() const throw(); };
+		// "Client authentication failed. Connection rejected."class ERR_WRONGPASSWORD :		public std::exception { virtual const char* what() const throw(); };
+		// "Error reading nickname from client."class ERR_CANNOTREADNICKNAME :	public std::exception { virtual const char* what() const throw(); };
+		// "Error reading username from client."class ERR_CANNOTREADUSERNAME :	public std::exception { virtual const char* what() const throw(); };
 		// class ERR_CLIENTDISCONNECTED :		public std::exception { virtual const char* what() const throw(); };
 		// class ERR_ :		public std::exception { virtual const char* what() const throw(); };
 

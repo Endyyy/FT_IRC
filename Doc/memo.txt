@@ -2,3 +2,71 @@ checklist avant d'oublier pour rendu final:
 
 -	verifier formes copliennes
 - gerer les signaux
+
+
+IMPORTANT : check read/write send/recv voir quoi utiliser et combien de fois dans le code
+selon bareme de correction
+
+
+ORDRE DES OPERATIONS
+
+- parser
+	si echec > fatal
+- run() le server
+	- reset fd - marche toujours
+	- waiting for activity
+		si echec > fatal (ERR_SELECT) // voir avec gestion signaux
+	- check server activity - pas bloquant
+		- add un user au server - pas bloquant
+			- accept
+				si echec > skip la suite de add user, retour debut boucle while
+			- inserer le user dans map - marche toujours
+			- recevoir PASS
+				si echec, demande a l'infini
+			- checker PASS
+				si echec, demande a l'infini
+			- recevoir NICK
+				si echec, demande a l'infini
+			- recevoir USER
+				si echec, demande a l'infini
+	- check user activity
+		- check si le socket user est dans fd_set
+			si echec, comportement a definir >>>>> debat
+		- recuperer len read du user
+			- si 0 - delete user, close fd, supprimer user de map, + message
+			- si -1 (via signal) - idem
+		- identifier la commande
+			- si echec  > info des cmd possibles
+			- executer la commande
+				- JOIN (creer ou rejoindre un channel)
+					(syntaxe
+					JOIN #nomduchannel
+					)
+					- checker syntaxe de cmd
+						si echec, afficher usage et retour a executer la commande
+					- checker nom du channel dans "liste" channel
+						- si pas dans liste
+							- ajouter channel a liste
+							- donner les droits au user
+						- si dans liste
+							- check si password
+								si pas de password > JOIN
+								si password
+									- demande password
+										si echec retour a "executer la commande"
+				- PRIVMSG (envoi un message a un autre user)
+					- checker syntaxe de cmd
+						si echec, afficher usage et retour a executer la commande
+					- checker si <receiver> existe (peut etre <user>  ou <user,user,user...> ou <#channel>)
+						- si pas dans la liste
+							- retour a executer la commande
+						- si dans liste
+							- send message au fd du/des user ou channel correspondant
+				- INVITE
+				- KICK
+				- MODE
+				- TOPIC
+				- NICK
+				- PASS
+				- USER
+				- QUIT
