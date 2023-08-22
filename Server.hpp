@@ -47,14 +47,15 @@ class Server
 		void		reset_fd_set();
 		void		waiting_for_activity();
 		bool		check_server_activity();
+		void		registration();
 		type_sock	add_user_to_server();
-		std::string	read_from_user(int userSocket, char const* sentence);
+		bool		read_from_user(int userSocket, char const* sentence, int step);
 		void		set_address();
 
 
-		void	cmdPass(std::string arg, int sd);
-		void	cmdNick(std::string arg, int sd);
-		void	cmdUser(std::string arg, int sd);
+		bool	cmdPass(std::string arg);
+		bool	cmdNick(std::string arg, int sd);
+		bool	cmdUser(std::string arg, int sd);
 		void	cmdKick(std::string arg, int sd);
 		void	cmdInvite(std::string arg, int sd);
 		void	cmdTopic(std::string arg, int sd);

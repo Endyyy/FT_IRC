@@ -82,7 +82,7 @@ type_sock	Server::add_user_to_server()
 	socklen_t addrLength = sizeof(_address);
 	type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength);
 	if (tmp_socket < 0)
-		throw (ERR_ACCEPTFAILURE());////////////////////douteux
+		throw (ERR_ACCEPTFAILURE());
 	_clients.insert(std::make_pair(tmp_socket, new User(tmp_socket)));
 	std::cout
 	<< "New connection, socket fd: " << tmp_socket
@@ -97,29 +97,52 @@ type_sock	Server::add_user_to_server()
 
 // }
 
-std::string	Server::read_from_user(type_sock userSocket, char const* sentence)//obsolete ?
+bool	Server::read_from_user(type_sock userSocket, char const* sentence, int step)
 {
 	std::string	str;
 	char		buffer[BUFFER_SIZE] = {0};
 
-	// send(userSocket, "PASS <password>\n", strlen("PASS <password>\n"), 0);//previous
 	send(userSocket, sentence, strlen(sentence), 0);
 	int len = read(userSocket, buffer, BUFFER_SIZE);
-
-	//appeler le bloc essentiel cmdpass
-
-	std::cout << "test len " << len << " server cpp 105"<< std::endl;
-	str.erase(str.size() - 1);///////voir le meilleure moyen de trim le str
-	if (len > 0)
+	if (len < 0)
 	{
-		str = buffer;
-		// str.erase(std::remove(str.begin(), str.end(), '\n'), userPassword.end()); // Remove newline character
-		return (str);
+		std::cout << "Problem with read !" << std::endl;
+		return (false);
 	}
-	return ("");
+	if (step == 1)
+		return (cmdPass(buffer));
+	if (step == 2)
+		return (cmdNick(buffer, userSocket));
+	if (step == 3)
+		return (cmdUser(buffer, userSocket));
+	return (false);
 }
 
-
+void	Server::registration()
+{
+	type_sock	userSocket = add_user_to_server();
+	bool reg = false;
+	while (!reg)
+	{
+		if (!read_from_user(userSocket, "PASS <password>\n", 1))
+			continue ;
+		reg = true;
+	}
+	reg = false;
+	while (!reg)
+	{
+		if (!read_from_user(userSocket, "NICK <nickname>\n", 2))
+			continue ;
+		reg = true;
+	}
+	reg = false;
+	while (!reg)
+	{
+		if (!read_from_user(userSocket, "USER :<username>\n", 3))
+			continue ;
+		reg = true;
+	}
+}
 void	Server::run()
 {
 	while (true)
@@ -127,80 +150,9 @@ void	Server::run()
 		reset_fd_set();
 		//gestion des signaux a implementer
 		waiting_for_activity();
-
 		// New incoming connection
 		if (check_server_activity())
-		{
-			type_sock	userSocket = add_user_to_server();
-			std::string	sample = read_from_user(userSocket, "PASS <password>\n");
-
-			// // Check if password exist
-			// if (sample.empty())
-			// {
-			// 	// Error reading password
-			// 	std::cerr << "Error reading password from client." << std::endl;
-			// 	close(userSocket);
-			// 	continue;/// On doit supprimer le user
-			// }
-			// // Check if the entered password matches the server's password
-			// if (sample != _serverPassword)
-			// {
-			// 	// Wrong password, reject the connection
-			// 	std::cout << "Client authentication failed. Connection rejected." << std::endl;
-			// 	close(userSocket);
-			// 	continue ;
-			// 	// return ;
-			// }
-
-			// Password match, accept the connection
-			std::cout << "Client authenticated. Connection accepted." << std::endl;
-
-			// Add new socket to array of client sockets
-			// for (int i = 0; i < MAX_CLIENTS; ++i)
-			// {
-			//	if (_clients[i] == 0)
-			//	{
-			//		_clients[i] = userSocket;
-			//		break;
-			//	}
-			// }
-
-			sample = read_from_user(userSocket, "NICK <nickname>\n");
-			if (sample.empty())
-			{
-				// Error reading nickname
-				std::cerr << "Error reading nickname from client." << std::endl;
-				close(userSocket);
-				continue;
-			}
-			//////////manque check si nickname dispo, pas de doublons possibles? // On fait direct dans la commande NICK et on l'appelle ici
-			//////////manque maj du user pour ajouter nickname?				 // On fait direct dans la commande NICK et on l'appelle ici
-
-			sample = read_from_user(userSocket, "USER <username>\n");
-			if (sample.empty())
-			{
-				// Error reading username
-				std::cerr << "Error reading username from client." << std::endl;
-				close(userSocket);
-				continue;
-			}
-			//////////manque maj du user pour ajouter username? // On fait direct dans la commande USER et on l'appelle ici
-
-
-			// Add new socket to array of client sockets
-			// for (int i = 0; i < MAX_CLIENTS; ++i)
-			// {
-			// 	if (_clients[i] == 0)
-			// 	{
-			// 		_clients[i] = userSocket;
-			// 		break;
-			// 	}
-			// }
-			///////////////////////deja fait? // Oui ca doit etre le nouvelle equivalent "int userSocket = add_user_to_server(); ligne 121"
-		}
-
-		///////////////////pas encore fait la suite
-
+			registration();
 		// Handle data from clients
 		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
@@ -232,76 +184,56 @@ void	Server::run()
 	}
 }
 
-void Server::cmdPass(std::string arg, type_sock client_socket) //FONCTION DOUBLE : le format peut te servir pour le passing de ta fonction check password
+bool Server::cmdPass(std::string arg)
 {
 	std::stringstream	stream(arg);
-	std::string			cmd_name;
+	std::string			cmd;
 	std::string			passwd;
 	std::string			end;
 
-	if (stream)
-	{
-		stream >> cmd_name;
-	}
-	if (stream)
-	{
-		stream >> passwd;
-		if (passwd[0] == 0)
-		{
-			send(client_socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
-			return ;
-		}
-	}
+	if (!(stream >> cmd) || cmd != "PASS") {
+        return (false);
+    }
+    if (!(stream >> passwd)) {
+        return (false);
+    }
 	if (stream)
 	{
 		stream >> end;
 		if (end[0])
-		{
-			send(client_socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
-		}
+			return (false);
 	}
-	if (passwd.compare(this->_serverPassword))
-	{
-		send(client_socket, "Wrong password !\n", strlen("Wrong password !\n"), 0);
-	}
+    if (passwd == _serverPassword)
+		return (true);
+	return (false);
 }
 
-void Server::cmdNick(std::string arg, int client_socket)
+bool Server::cmdNick(std::string arg, int client_socket)
 {
 	std::stringstream	stream(arg);
-	std::string			cmd_name;
+	std::string			cmd;
 	std::string			nick_name;
 	std::string			end;
 
-	if (stream)
-	{
-		stream >> cmd_name;
-	}
-	if (stream)
-	{
-		stream >> nick_name;
-		if (nick_name[0] == 0)
-		{
-			send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
-			return ;
-		}
-	}
+	if (!(stream >> cmd) || cmd != "NICK") {
+        return (false);
+    }
+    if (!(stream >> nick_name)) {
+        return (false);
+    }
 	if (stream)
 	{
 		stream >> end;
 		if (end[0])
-		{
-			send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
-			return ;
-		}
+			return (false);
 	}
 	for (std::map<int, User*>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		User* user = it->second;
-		if (user->get_nickname() == nick_name)
+		if (user->get_nickname() == nick_name && nick_name[0] != '\n')
 		{
 			send(client_socket, "Nickname already taken.\n", strlen("Nickname already taken.\n"), 0);
-			return ;
+			return (false);
 		}
 	}
 	for (int i = 0; nick_name[i]; i++)
@@ -309,41 +241,44 @@ void Server::cmdNick(std::string arg, int client_socket)
 		if (nick_name[i] < 32 || nick_name[i] == ':' || nick_name[i] == ';' || nick_name[i] == '!' || nick_name[i] == ',')
 		{
 			send(client_socket, "Erroneous nickname.\n", strlen("Erroneous nickname.\n"), 0);
-			return ;
+			return (false);
 		}
 	}
 	User* user = _clients[client_socket];
 	user->set_nickname(nick_name);
+	return (true);
 }
 
-void Server::cmdUser(std::string arg, int client_socket)
+bool Server::cmdUser(std::string arg, int client_socket)
 {
 	std::stringstream	stream(arg);
-	std::string			cmd_name;
+	std::string			cmd;
 	std::string			user_name;
 	std::string			end;
 
-	if (stream)
-	{
-		stream >> cmd_name;
-	}
-	if (stream)
-	{
-		stream >> user_name;
-		if (user_name[0] != ':')
-		{
-			send(client_socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
-			return ;
-		}
-	}
+	if (!(stream >> cmd) || cmd != "USER") {
+        return (false);
+    }
+    if (!(stream >> user_name)) {
+        return (false);
+    }
 	if (stream)
 	{
 		stream >> end;
-		if (end[0])
+		if (end[0] || user_name[0] != ':' || user_name.size() == 1)
+			return (false);
+	}
+	for (int i = 1; user_name[i]; i++)
+	{
+		if (user_name[i] < 32 || user_name[i] == ':' || user_name[i] == ';' || user_name[i] == '!' || user_name[i] == ',')
 		{
-			send(client_socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+			send(client_socket, "Erroneous username.\n", strlen("Erroneous username.\n"), 0);
+			return (false);
 		}
 	}
+	User* user = _clients[client_socket];
+	user->set_username(user_name);
+	return (true);
 }
 
 void Server::cmdKick(std::string arg, int client_socket)
@@ -390,25 +325,21 @@ void Server::cmdQuit()
 void Server::checkCommand(int client_socket, char *buffer)
 {
 	std::string arg = buffer;
-	if (arg.compare(0, 4, "JOIN") == 0)
+	if (arg.compare(0, 5, "JOIN ") == 0)
 		cmdJoin(arg, client_socket);
-	if (arg.compare(0, 7, "PRIVMSG") == 0)
+	if (arg.compare(0, 8, "PRIVMSG ") == 0)
 		cmdPrivMsg(arg, client_socket);
-	if (arg.compare(0, 6, "INVITE") == 0)
+	if (arg.compare(0, 7, "INVITE ") == 0)
 		cmdInvite(arg, client_socket);
-	if (arg.compare(0, 4, "KICK") == 0)
+	if (arg.compare(0, 5, "KICK ") == 0)
 		cmdKick(arg, client_socket);
-	if (arg.compare(0, 4, "MODE") == 0)
+	if (arg.compare(0, 5, "MODE ") == 0)
 		cmdMode(arg, client_socket);
-	if (arg.compare(0, 5, "TOPIC") == 0)
+	if (arg.compare(0, 6, "TOPIC" ) == 0)
 		cmdTopic(arg, client_socket);
-	if (arg.compare(0, 4, "NICK") == 0)
+	if (arg.compare(0, 5, "NICK ") == 0)
 		cmdNick(arg, client_socket);
-	if (arg.compare(0, 4, "PASS") == 0)
-		cmdPass(arg, client_socket);
-	if (arg.compare(0, 4, "USER") == 0)
-		cmdUser(arg, client_socket);
-	if (arg.compare(0, 4, "QUIT") == 0)
+	if (arg.compare(0, 4, "QUIT") == 0 && arg.size() == 4)
 		cmdQuit();
 	//prevoir else pour exemple "lol"
 	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << buffer << std::endl;
