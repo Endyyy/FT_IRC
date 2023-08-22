@@ -70,3 +70,6 @@ ORDRE DES OPERATIONS
 				- PASS
 				- USER
 				- QUIT
+
+note :
+- on ne peut faire aucun while en dehors du principal : ça bloquerait le server en attente d'un input d'un client et ça ferait foirer le sujet

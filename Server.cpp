@@ -12,10 +12,10 @@ _port(port), _serverPassword(serverPassword), _serverSocket(socket(AF_INET, SOCK
 {
 	if (_serverSocket == -1)
 		throw (ERR_INVALIDSOCKET());
-	Channel* default_Channel = new Channel("#general");
-	_channels["#general"] = default_Channel;
+	// Channel* default_Channel = new Channel("#general");// d'apres mes infos, un channel ne peut etre créé qu'à la demande d'un user. d'ailleurs, qui en serait le modo?
+	// _channels["#general"] = default_Channel;
 	set_address();
-	std::cout << "show value : port " << _port << "; _serverSocket " << _serverSocket << std::endl;
+	// std::cout << "show value : port " << _port << "; _serverSocket " << _serverSocket << std::endl;//test
 	std::cout << "Server created" << std::endl;
 }
 
@@ -79,13 +79,13 @@ bool	Server::check_server_activity()
 	return (FD_ISSET(_serverSocket, &_readfds));
 }
 
-type_sock	Server::add_user_to_server()
+type_sock	Server::define_user_socket()
 {
 	socklen_t addrLength = sizeof(_address);
 	type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength);
 	if (tmp_socket < 0)
 		throw (ERR_ACCEPTFAILURE());
-	_clients.insert(std::make_pair(tmp_socket, new User(tmp_socket)));
+	// _clients.insert(std::make_pair(tmp_socket, new User(tmp_socket)));
 	std::cout
 	<< "New connection, socket fd: " << tmp_socket
 	<< ", IP: " << inet_ntoa(_address.sin_addr)
@@ -104,57 +104,60 @@ bool	Server::read_from_user(type_sock userSocket, char const* sentence, int step
 	std::string	str;
 	char		buffer[BUFFER_SIZE] = {0};
 
-	send(userSocket, sentence, strlen(sentence), 0);
+	send(userSocket, sentence, strlen(sentence), 0);///////////segfault si ctrl c dans le user
 	int len = read(userSocket, buffer, BUFFER_SIZE);
+	std::cout << "TEST :" << len << " " << userSocket << " " << buffer << " " << (int)BUFFER_SIZE << std::endl;
 	if (len < 0)
 	{
 		std::cout << "Problem with read !" << std::endl;
 		return (false);
 	}
 	if (step == 1)
+	{
+		std::cout << "read_from_user step 1" << std::endl;
 		return (cmdPass(buffer));
+	}
 	if (step == 2)
+	{
+		std::cout << "read_from_user step 2" << std::endl;
 		return (cmdNick(buffer, userSocket));
+	}
 	if (step == 3)
+	{
+		std::cout << "read_from_user step 3" << std::endl;
 		return (cmdUser(buffer, userSocket));
+	}
 	return (false);
 }
 
 void	Server::registration()
 {
-	type_sock	userSocket = add_user_to_server();
-	bool reg = false;
-	while (!reg)
-	{
-		if (!read_from_user(userSocket, "PASS <password>\n", 1))
-			continue ;
-		reg = true;
-	}
-	reg = false;
-	while (!reg)
-	{
-		if (!read_from_user(userSocket, "NICK <nickname>\n", 2))
-			continue ;
-		reg = true;
-	}
-	reg = false;
-	while (!reg)
-	{
-		if (!read_from_user(userSocket, "USER :<username>\n", 3))
-			continue ;
-		reg = true;
-	}
+	type_sock	tmp_userSocket = define_user_socket();
+	// while (!read_from_user(tmp_userSocket, "PASS <password>\n", 1))
+	// 	continue ;
+	// while (!read_from_user(tmp_userSocket, "NICK <nickname>\n", 2))
+	// 	continue ;
+	// while (!read_from_user(tmp_userSocket, "USER :<username>\n", 3))
+	// 	continue ;
+	if (read_from_user(tmp_userSocket, "PASS <password>\n", 1))
+		if (read_from_user(tmp_userSocket, "NICK <nickname>\n", 2))
+			if (read_from_user(tmp_userSocket, "USER :<username>\n", 3))
+				_clients.insert(std::make_pair(tmp_userSocket, new User(tmp_userSocket)));
+	std::cout << "registration end" << std::endl;
 }
+
 void	Server::run()
 {
 	while (true)
 	{
+		std::cout << "while" << std::endl;
 		reset_fd_set();
 		//gestion des signaux a implementer
 		waiting_for_activity();
 		// New incoming connection
 		if (check_server_activity())
 			registration();
+
 		// Handle data from clients
 		std::vector<type_sock> disconnectedClients;
 		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
@@ -212,14 +215,21 @@ bool Server::cmdPass(std::string arg)
 	std::string			passwd;
 	std::string			end;
 
+	std::cout << "cmdPass" << std::endl;
+
 	if (!(stream >> cmd) || cmd != "PASS") {
+	std::cout << "cmd" << std::endl;
+
 		return (false);
 	}
 	if (!(stream >> passwd)) {
+	std::cout << "passwd" << std::endl;
+
 		return (false);
 	}
 	if (stream)
 	{
+	std::cout << "stream" << std::endl;
 		stream >> end;
 		if (end[0])
 			return (false);
@@ -235,6 +245,8 @@ bool Server::cmdNick(std::string arg, int client_socket)
 	std::string			cmd;
 	std::string			nick_name;
 	std::string			end;
+
+	std::cout << "cmdNick" << std::endl;
 
 	if (!(stream >> cmd) || cmd != "NICK") {
 		return (false);
@@ -276,6 +288,8 @@ bool Server::cmdUser(std::string arg, int client_socket)
 	std::string			cmd;
 	std::string			user_name;
 	std::string			end;
+
+	std::cout << "cmdUser" << std::endl;
 
 	if (!(stream >> cmd) || cmd != "USER") {
 		return (false);

@@ -49,7 +49,7 @@ class Server
 		void		waiting_for_activity();
 		bool		check_server_activity();
 		void		registration();
-		type_sock	add_user_to_server();
+		type_sock	define_user_socket();
 		bool		read_from_user(int userSocket, char const* sentence, int step);
 		void		set_address();
 
