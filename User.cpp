@@ -14,35 +14,35 @@ User& User::operator=(User const& source) { (void)source; return (*this); }
 
 User::User(int const socket) : _userSocket(socket)
 {
-    std::cout << "New User created. User socket is " << _userSocket << std::endl;
+	std::cout << "New User created. User socket is " << _userSocket << std::endl;
 }
 
 User::~User()
-{  
-    std::cout << _nickname << " has been destroyed" << std::endl;
+{
+	std::cout << _nickname << " has been destroyed" << std::endl;
 }
 
-void    User::set_username(std::string username)
+void	User::set_username(std::string username)
 {
-    _username = username;
+	_username = username;
 }
 
-void    User::set_nickname(std::string nickname)
+void	User::set_nickname(std::string nickname)
 {
-    _nickname = nickname;
+	_nickname = nickname;
 }
 
 std::string User::get_nickname() const
 {
-    return (_nickname);
+	return (_nickname);
 }
 
 std::string User::get_username() const
 {
-    return (_username);
+	return (_username);
 }
 
-int         User::get_userSocket() const
+type_sock	User::get_userSocket() const
 {
-    return (_userSocket);
+	return (_userSocket);
 }

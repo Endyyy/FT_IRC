@@ -13,7 +13,7 @@ _port(port), _serverPassword(serverPassword), _serverSocket(socket(AF_INET, SOCK
 	if (_serverSocket == -1)
 		throw (ERR_INVALIDSOCKET());
 	Channel* default_Channel = new Channel("#general");
-    _channels["#general"] = default_Channel;
+	_channels["#general"] = default_Channel;
 	set_address();
 	std::cout << "show value : port " << _port << "; _serverSocket " << _serverSocket << std::endl;
 	std::cout << "Server created" << std::endl;
@@ -191,16 +191,16 @@ void	Server::run()
 		// Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D
 		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end();)
 		{
-    		type_sock client_socket = it->first;
-    		if (std::find(disconnectedClients.begin(), disconnectedClients.end(), client_socket) != disconnectedClients.end())
-    		{
-        		close(client_socket);
-        		delete it->second;
-        		_clients.erase(it);
+			type_sock client_socket = it->first;
+			if (std::find(disconnectedClients.begin(), disconnectedClients.end(), client_socket) != disconnectedClients.end())
+			{
+				close(client_socket);
+				delete it->second;
+				_clients.erase(it);
 				it = _clients.begin();
-    		}
-    		else
-        		it++;
+			}
+			else
+				it++;
 		}
 	}
 }
@@ -213,18 +213,18 @@ bool Server::cmdPass(std::string arg)
 	std::string			end;
 
 	if (!(stream >> cmd) || cmd != "PASS") {
-        return (false);
-    }
-    if (!(stream >> passwd)) {
-        return (false);
-    }
+		return (false);
+	}
+	if (!(stream >> passwd)) {
+		return (false);
+	}
 	if (stream)
 	{
 		stream >> end;
 		if (end[0])
 			return (false);
 	}
-    if (passwd == _serverPassword)
+	if (passwd == _serverPassword)
 		return (true);
 	return (false);
 }
@@ -237,11 +237,11 @@ bool Server::cmdNick(std::string arg, int client_socket)
 	std::string			end;
 
 	if (!(stream >> cmd) || cmd != "NICK") {
-        return (false);
-    }
-    if (!(stream >> nick_name)) {
-        return (false);
-    }
+		return (false);
+	}
+	if (!(stream >> nick_name)) {
+		return (false);
+	}
 	if (stream)
 	{
 		stream >> end;
@@ -278,11 +278,11 @@ bool Server::cmdUser(std::string arg, int client_socket)
 	std::string			end;
 
 	if (!(stream >> cmd) || cmd != "USER") {
-        return (false);
-    }
-    if (!(stream >> user_name)) {
-        return (false);
-    }
+		return (false);
+	}
+	if (!(stream >> user_name)) {
+		return (false);
+	}
 	if (stream)
 	{
 		stream >> end;
@@ -334,25 +334,25 @@ bool Server::cmdJoin(std::string arg, int client_socket)
 	std::string			key;
 
 	if (!(stream >> cmd) || cmd != "JOIN") {
-        return (false);
-    }
-    if (!(stream >> channel_name)) {
-        return (false);
-    }
+		return (false);
+	}
+	if (!(stream >> channel_name)) {
+		return (false);
+	}
 	if (stream)
 	{
 		stream >> key;
 		if (channel_name[0] != '#' || channel_name.size() == 1)
 			return (false);
 	}
-    if (_channels.find(channel_name) == _channels.end())
-        _channels[channel_name] = new Channel(channel_name);
-    User* user = _clients[client_socket];
-    _channels[channel_name]->addUser(user);
-    std::string join_message = "JOIN " + channel_name + "\n";
-    send(client_socket, join_message.c_str(), join_message.size(), 0);
-    std::string user_join_message = ":" + user->get_nickname() + " JOIN " + channel_name + "\n";
-    _channels[channel_name]->sendMessage(user_join_message, client_socket);
+	if (_channels.find(channel_name) == _channels.end())
+		_channels[channel_name] = new Channel(channel_name);
+	User* user = _clients[client_socket];
+	_channels[channel_name]->addUser(user);
+	std::string join_message = "JOIN " + channel_name + "\n";
+	send(client_socket, join_message.c_str(), join_message.size(), 0);
+	std::string user_join_message = ":" + user->get_nickname() + " JOIN " + channel_name + "\n";
+	_channels[channel_name]->sendMessage(user_join_message, client_socket);
 	return (true);
 }
 
