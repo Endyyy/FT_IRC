@@ -154,6 +154,7 @@ void	Server::run()
 		if (check_server_activity())
 			registration();
 		// Handle data from clients
+		std::vector<type_sock> disconnectedClients;
 		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			type_sock client_socket = it->first;
@@ -166,6 +167,7 @@ void	Server::run()
 					// Client disconnected
 					std::cout << "Client disconnected, socket fd: " << client_socket << std::endl;
 					close(client_socket);
+					disconnectedClients.push_back(client_socket);
 					// it->first = 0;////////////impossible. modifier par suppr un user
 				}
 				else if (valread == -1)
@@ -173,6 +175,7 @@ void	Server::run()
 					// Error or abrupt disconnection
 					std::cerr << "Error reading data from client, socket fd: " << client_socket << std::endl;
 					close(client_socket);
+					disconnectedClients.push_back(client_socket);
 					// it->first = 0;////////////impossible. modifier par suppr un user
 				}
 				else {
@@ -180,6 +183,19 @@ void	Server::run()
 					checkCommand(client_socket, buffer);
 				}
 			}
+		}
+		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end();)
+		{
+    		type_sock client_socket = it->first;
+    		if (std::find(disconnectedClients.begin(), disconnectedClients.end(), client_socket) != disconnectedClients.end())
+    		{
+        		close(client_socket);
+        		delete it->second;
+        		_clients.erase(it);
+				it = _clients.begin();
+    		}
+    		else
+        		it++;
 		}
 	}
 }
