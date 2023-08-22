@@ -62,8 +62,7 @@ class Server
 		void	cmdMode(std::string arg, int sd);
 		void	cmdJoin(std::string arg, int sd);
 		void	cmdPrivMsg(std::string arg, int sd);
-		void	cmdQuit();
-		void	checkCommand(int sd, char *buffer);
+		int		checkCommand(int sd, char *buffer);
 
 		//ERROR_MSGS
 

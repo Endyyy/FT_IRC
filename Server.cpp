@@ -168,7 +168,6 @@ void	Server::run()
 					std::cout << "Client disconnected, socket fd: " << client_socket << std::endl;
 					close(client_socket);
 					disconnectedClients.push_back(client_socket);
-					// it->first = 0;////////////impossible. modifier par suppr un user
 				}
 				else if (valread == -1)
 				{
@@ -176,14 +175,18 @@ void	Server::run()
 					std::cerr << "Error reading data from client, socket fd: " << client_socket << std::endl;
 					close(client_socket);
 					disconnectedClients.push_back(client_socket);
-					// it->first = 0;////////////impossible. modifier par suppr un user
 				}
 				else {
 					// Handle data from the client
-					checkCommand(client_socket, buffer);
+					if (checkCommand(client_socket, buffer) == 1)
+					{
+						close(client_socket);
+						disconnectedClients.push_back(client_socket);
+					}
 				}
 			}
 		}
+		// Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D
 		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end();)
 		{
     		type_sock client_socket = it->first;
@@ -333,32 +336,30 @@ void Server::cmdPrivMsg(std::string arg, int client_socket)
 	(void)client_socket;
 }
 
-void Server::cmdQuit()
-{
-
-}
-
-void Server::checkCommand(int client_socket, char *buffer)
+int Server::checkCommand(int client_socket, char *buffer)
 {
 	std::string arg = buffer;
-	if (arg.compare(0, 5, "JOIN ") == 0)
+	if (arg.compare(0, 4, "JOIN") == 0)
 		cmdJoin(arg, client_socket);
-	if (arg.compare(0, 8, "PRIVMSG ") == 0)
+	else if (arg.compare(0, 7, "PRIVMSG") == 0)
 		cmdPrivMsg(arg, client_socket);
-	if (arg.compare(0, 7, "INVITE ") == 0)
+	else if (arg.compare(0, 6, "INVITE") == 0)
 		cmdInvite(arg, client_socket);
-	if (arg.compare(0, 5, "KICK ") == 0)
+	else if (arg.compare(0, 4, "KICK") == 0)
 		cmdKick(arg, client_socket);
-	if (arg.compare(0, 5, "MODE ") == 0)
+	else if (arg.compare(0, 4, "MODE") == 0)
 		cmdMode(arg, client_socket);
-	if (arg.compare(0, 6, "TOPIC" ) == 0)
+	else if (arg.compare(0, 5, "TOPIC") == 0)
 		cmdTopic(arg, client_socket);
-	if (arg.compare(0, 5, "NICK ") == 0)
+	else if (arg.compare(0, 4, "NICK") == 0)
 		cmdNick(arg, client_socket);
-	if (arg.compare(0, 4, "QUIT") == 0 && arg.size() == 4)
-		cmdQuit();
-	//prevoir else pour exemple "lol"
+	else if (arg.compare(0, 4, "QUIT") == 0 && arg.size() == 5)
+		return (1);
+	else
+		send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
+		 strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
 	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << buffer << std::endl;
+	return (0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
