@@ -20,6 +20,7 @@ class User
 		int const	_userSocket;
 		std::string	_nickname;
 		std::string	_username;
+		int			_userState;
 
 		User();
 		User(User const& source);

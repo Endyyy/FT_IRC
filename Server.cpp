@@ -79,25 +79,24 @@ bool	Server::check_server_activity()
 	return (FD_ISSET(_serverSocket, &_readfds));
 }
 
-type_sock	Server::define_user_socket()
+type_sock	Server::get_incoming_socket()
 {
 	socklen_t addrLength = sizeof(_address);
 	type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength);
 	if (tmp_socket < 0)
-		throw (ERR_ACCEPTFAILURE());
-	// _clients.insert(std::make_pair(tmp_socket, new User(tmp_socket)));
-	std::cout
-	<< "New connection, socket fd: " << tmp_socket
-	<< ", IP: " << inet_ntoa(_address.sin_addr)
-	<< ", Port: " << ntohs(_address.sin_port)
-	<< std::endl;
+		throw (ERR_ACCEPTFAILURE());//////////comportement a definir
 	return (tmp_socket);
 }
 
-// void	Server::remove_user_from_server()
-// {
-
-// }
+void	Server::add_new_user(type_sock userSocket)
+{
+	_clients.insert(std::make_pair(userSocket, new User(userSocket)));
+	std::cout <<
+	"New connection, socket fd: " << userSocket <<
+	", IP: " << inet_ntoa(_address.sin_addr) <<
+	", Port: " << ntohs(_address.sin_port) <<
+	std::endl;
+}
 
 bool	Server::read_from_user(type_sock userSocket, char const* sentence, int step)
 {
@@ -106,57 +105,86 @@ bool	Server::read_from_user(type_sock userSocket, char const* sentence, int step
 
 	send(userSocket, sentence, strlen(sentence), 0);///////////segfault si ctrl c dans le user
 	int len = read(userSocket, buffer, BUFFER_SIZE);
-	std::cout << "TEST :" << len << " " << userSocket << " " << buffer << " " << (int)BUFFER_SIZE << std::endl;
-	if (len < 0)
+	std::cout << "TEST :" << len << " " << userSocket << " " << buffer << std::endl;
+	if (len < 0)/////////// ou egal a 0 ? quid si chaine vide
 	{
 		std::cout << "Problem with read !" << std::endl;
 		return (false);
 	}
+	str = buffer;
+	str = str.erase(str.size() - 1);
+	// std::cout << "buffer is : " << buffer << std::endl;
+	// std::cout << "str    is : " << str << std::endl;
 	if (step == 1)
 	{
 		std::cout << "read_from_user step 1" << std::endl;
-		return (cmdPass(buffer));
+		return (cmdPass(str));
 	}
 	if (step == 2)
 	{
 		std::cout << "read_from_user step 2" << std::endl;
-		return (cmdNick(buffer, userSocket));
+		return (cmdNick(str, userSocket));
 	}
 	if (step == 3)
 	{
 		std::cout << "read_from_user step 3" << std::endl;
-		return (cmdUser(buffer, userSocket));
+		return (cmdUser(str, userSocket));
 	}
 	return (false);
 }
 
-void	Server::registration()
-{
-	type_sock	tmp_userSocket = define_user_socket();
-	// while (!read_from_user(tmp_userSocket, "PASS <password>\n", 1))
-	// 	continue ;
-	// while (!read_from_user(tmp_userSocket, "NICK <nickname>\n", 2))
-	// 	continue ;
-	// while (!read_from_user(tmp_userSocket, "USER :<username>\n", 3))
-	// 	continue ;
-	if (read_from_user(tmp_userSocket, "PASS <password>\n", 1))
-		if (read_from_user(tmp_userSocket, "NICK <nickname>\n", 2))
-			if (read_from_user(tmp_userSocket, "USER :<username>\n", 3))
-				_clients.insert(std::make_pair(tmp_userSocket, new User(tmp_userSocket)));
-	std::cout << "registration end" << std::endl;
-}
+// void	Server::complete_registration()
+// {
+// 	type_sock	tmp_userSocket = get_incoming_socket();
+// 	// try
+// 	// {
+// 	// 	read_from_user(tmp_userSocket, "PASS <password>\n", 1);
+// 	// 	read_from_user(tmp_userSocket, "NICK <nickname>\n", 2);
+// 	// 	read_from_user(tmp_userSocket, "USER :<username>\n", 3);
+// 	// }
+// 	// catch (const std::exception& e)
+// 	// {
+
+// 	// }
+// 	std::cout << "registration end" << std::endl;
+// }
 
 void	Server::run()
 {
+	type_sock socket = 0;
 	while (true)
 	{
 		std::cout << "while" << std::endl;
+
 		reset_fd_set();
+		std::cout << "fd_set reseted" << std::endl;
+
 		//gestion des signaux a implementer
+
 		waiting_for_activity();
+		std::cout << "waiting is over" << std::endl;
+
 		// New incoming connection
 		if (check_server_activity())
-			registration();
+		{
+			std::cout << "activity checked" << std::endl;
+
+			socket = get_incoming_socket();
+			std::cout << "socket identified" << std::endl;
+
+			if (_clients.find(socket) == _clients.end())
+			{
+				std::cout << "user not find in map" << std::endl;
+
+				add_new_user(socket);
+				std::cout << "new user added" << std::endl;
+
+				send(socket, "Enter password. [PASS <password>]\n", strlen("Enter password. [PASS <password>]\n"), 0);
+			}
+			//envoyer le message approprie au client pour qu'il ecrive son mdp ou nick ou user
+			//si state a trois, ne rien print du tout
+		}
+
 
 		// Handle data from clients
 		std::vector<type_sock> disconnectedClients;
@@ -191,20 +219,20 @@ void	Server::run()
 				}
 			}
 		}
-		// Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D
-		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end();)
-		{
-			type_sock client_socket = it->first;
-			if (std::find(disconnectedClients.begin(), disconnectedClients.end(), client_socket) != disconnectedClients.end())
-			{
-				close(client_socket);
-				delete it->second;
-				_clients.erase(it);
-				it = _clients.begin();
-			}
-			else
-				it++;
-		}
+		// // Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D
+		// for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end();)
+		// {
+		// 	type_sock client_socket = it->first;
+		// 	if (std::find(disconnectedClients.begin(), disconnectedClients.end(), client_socket) != disconnectedClients.end())
+		// 	{
+		// 		close(client_socket);
+		// 		delete it->second;
+		// 		_clients.erase(it);
+		// 		it = _clients.begin();
+		// 	}
+		// 	else
+		// 		it++;
+		// }
 	}
 }
 
@@ -216,6 +244,7 @@ bool Server::cmdPass(std::string arg)
 	std::string			end;
 
 	std::cout << "cmdPass" << std::endl;
+	std::cout << "arg : " << arg << std::endl;
 
 	if (!(stream >> cmd) || cmd != "PASS") {
 	std::cout << "cmd" << std::endl;

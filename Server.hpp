@@ -48,8 +48,9 @@ class Server
 		void		reset_fd_set();
 		void		waiting_for_activity();
 		bool		check_server_activity();
-		void		registration();
-		type_sock	define_user_socket();
+		void		complete_registration();
+		type_sock	get_incoming_socket();
+		void		add_new_user(type_sock userSocket);
 		bool		read_from_user(int userSocket, char const* sentence, int step);
 		void		set_address();
 

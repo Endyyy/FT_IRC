@@ -12,7 +12,7 @@ User::User(User const& source) : _userSocket(0) { (void)source; }
 User& User::operator=(User const& source) { (void)source; return (*this); }
 ////////////////////////////////////////////////////////////////////////////////
 
-User::User(int const socket) : _userSocket(socket)
+User::User(int const socket) : _userSocket(socket), _userState(0)
 {
 	std::cout << "New User created. User socket is " << _userSocket << std::endl;
 }
