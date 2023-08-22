@@ -23,10 +23,8 @@ class Channel
 		bool		_topic_state;
 		bool		_invite_state;
 		bool		_password_state;
-
-		std::map<std::string, User&>	_reg_moderators;
-		std::map<std::string, User&>	_reg_users;
-
+		std::vector<User*>	_reg_users;
+		std::vector<User*>	_reg_moderators;
 		Channel();
 		Channel(Channel const& source);
 		Channel& operator=(Channel const& source);
@@ -35,9 +33,11 @@ class Channel
 		Channel(const std::string& name);
 		~Channel();
 
-		void	addUser(const User& user, int moderator);
-		void	removeUser(const User& user);
-		int		getUserPrivilege(const User& user) const;
+		void	addUser(User *user);
+		void	removeUser(User *user);
+		int		getUserPrivilege(User *user) const;
+		void sendMessage(const std::string& message, type_sock sender_socket);
+
 };
 
 #endif

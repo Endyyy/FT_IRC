@@ -20,6 +20,7 @@ Channel& Channel::operator=(Channel const& source) { (void)source; return (*this
 Channel::Channel(const std::string& name) :
 _name(name), _topic_state(false), _invite_state(false), _password_state(false)
 {
+    //add dans reg_moderators
     (void)_name;//delete
     (void)_topic_state;//delete
     (void)_invite_state;//delete
@@ -32,26 +33,35 @@ Channel::~Channel()
     std::cout << "Channel \"" << _name << "\" is destroyed" << std::endl;
 }
 
-void Channel::addUser(const User& user, int moderator)
+void Channel::addUser(User *user)
 {
+    //add dans reg_user
     (void)user;//delete
-    (void)moderator;//delete
     // _reg_users[user.getUsername()] = moderator;
 }
 
-void Channel::removeUser(const User& user)
+void Channel::sendMessage(const std::string& message, type_sock sender_socket)
 {
-    (void)user;//delete
-    // _reg_users.erase(user.getUsername());
-}
-
-int Channel::getUserPrivilege(const User& user) const
-{
-    (void)user;//delete
-    std::map<std::string, User&>::const_iterator it = _reg_users.find(user.get_username());
-    if (it != _reg_users.end())
+    for (size_t i = 0; i < _reg_users.size(); ++i)
     {
-        return it->second.get_userSocket();
+        User* user = _reg_users[i];
+        if (user->get_userSocket() != sender_socket)
+            send(user->get_userSocket(), message.c_str(), message.size(), 0);
     }
-    return -1;
 }
+// void Channel::removeUser(const User& user)
+// {
+//     (void)user;//delete
+//     // _reg_users.erase(user.getUsername());
+// }
+
+// int Channel::getUserPrivilege(const User& user) const
+// {
+//     (void)user;//delete
+//     std::map<std::string, User&>::const_iterator it = _reg_users.find(user.get_username());
+//     if (it != _reg_users.end())
+//     {
+//         return it->second.get_userSocket();
+//     }
+//     return -1;
+// }

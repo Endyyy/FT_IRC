@@ -12,6 +12,8 @@ _port(port), _serverPassword(serverPassword), _serverSocket(socket(AF_INET, SOCK
 {
 	if (_serverSocket == -1)
 		throw (ERR_INVALIDSOCKET());
+	Channel* default_Channel = new Channel("#general");
+    _channels["#general"] = default_Channel;
 	set_address();
 	std::cout << "show value : port " << _port << "; _serverSocket " << _serverSocket << std::endl;
 	std::cout << "Server created" << std::endl;
@@ -324,10 +326,34 @@ void Server::cmdMode(std::string arg, int client_socket)
 	(void)client_socket;
 }
 
-void Server::cmdJoin(std::string arg, int client_socket)
+bool Server::cmdJoin(std::string arg, int client_socket)
 {
-	(void)arg;
-	(void)client_socket;
+	std::stringstream	stream(arg);
+	std::string			cmd;
+	std::string			channel_name;
+	std::string			key;
+
+	if (!(stream >> cmd) || cmd != "JOIN") {
+        return (false);
+    }
+    if (!(stream >> channel_name)) {
+        return (false);
+    }
+	if (stream)
+	{
+		stream >> key;
+		if (channel_name[0] != '#' || channel_name.size() == 1)
+			return (false);
+	}
+    if (_channels.find(channel_name) == _channels.end())
+        _channels[channel_name] = new Channel(channel_name);
+    User* user = _clients[client_socket];
+    _channels[channel_name]->addUser(user);
+    std::string join_message = "JOIN " + channel_name + "\n";
+    send(client_socket, join_message.c_str(), join_message.size(), 0);
+    std::string user_join_message = ":" + user->get_nickname() + " JOIN " + channel_name + "\n";
+    _channels[channel_name]->sendMessage(user_join_message, client_socket);
+	return (true);
 }
 
 void Server::cmdPrivMsg(std::string arg, int client_socket)

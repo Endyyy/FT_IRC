@@ -16,6 +16,7 @@
 # include <arpa/inet.h>
 # include <sstream>
 # include "User.hpp"
+# include "Channel.hpp"
 
 # define MAX_CLIENTS 100
 # define BUFFER_SIZE 1024
@@ -30,8 +31,8 @@ class Server
 		fd_set				_readfds;
 		type_sock			_topSocket;
 
-		std::map<type_sock, User*>	_clients;
-
+		std::map<type_sock, User*>		_clients;
+		std::map<std::string, Channel*>	_channels;
 		Server();
 		Server(Server const& source);
 		Server&	operator=(Server const& source);
@@ -56,11 +57,11 @@ class Server
 		bool	cmdPass(std::string arg);
 		bool	cmdNick(std::string arg, int sd);
 		bool	cmdUser(std::string arg, int sd);
+		bool	cmdJoin(std::string arg, int sd);
 		void	cmdKick(std::string arg, int sd);
 		void	cmdInvite(std::string arg, int sd);
 		void	cmdTopic(std::string arg, int sd);
 		void	cmdMode(std::string arg, int sd);
-		void	cmdJoin(std::string arg, int sd);
 		void	cmdPrivMsg(std::string arg, int sd);
 		int		checkCommand(int sd, char *buffer);
 
