@@ -7,6 +7,7 @@
 # include <iostream>
 # include <stdexcept>
 # include <cstring>
+# include <string>
 # include <cstdlib>
 # include <cstdio>
 # include <unistd.h>
@@ -52,8 +53,11 @@ class Server
 		type_sock	get_incoming_socket();
 		void		add_new_user(type_sock userSocket);
 		std::string	recv_from_user(type_sock userSocket);
-		// bool		read_from_user(int userSocket, char const* sentence, int step);
+		std::string get_clientDatas(type_sock socket);
+		void		erase_one_user(type_sock userSocket);
+		void		erase_all_users();
 		void		set_address();
+		void		ask_for_login_credentials(std::string arg, type_sock client_socket, int lvl);
 
 
 		bool	cmdPass(std::string arg);
@@ -65,7 +69,7 @@ class Server
 		void	cmdTopic(std::string arg, type_sock client_socket);
 		void	cmdMode(std::string arg, type_sock client_socket);
 		void	cmdPrivMsg(std::string arg, type_sock client_socket);
-		int		checkCommand(std::string arg, type_sock client_socket);
+		void	checkCommand(std::string arg, type_sock client_socket);
 
 		//ERROR_MSGS
 

@@ -19,7 +19,7 @@ User::User(int const socket) : _userSocket(socket), _userState(0)
 
 User::~User()
 {
-	std::cout << _nickname << " has been destroyed" << std::endl;
+	std::cout << "A user has been destroyed" << std::endl;
 }
 
 void	User::set_username(std::string username)

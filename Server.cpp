@@ -21,6 +21,8 @@ _port(port), _serverPassword(serverPassword), _serverSocket(socket(AF_INET, SOCK
 
 Server::~Server()
 {
+	erase_all_users();
+	std::cout << "All users are deleted" << std::endl;
 	std::cout << "Server destroyed" << std::endl;
 }
 
@@ -98,6 +100,34 @@ void	Server::add_new_user(type_sock userSocket)
 	std::endl;
 }
 
+void	Server::erase_one_user(type_sock userSocket)
+{
+	std::map<type_sock, User*>::iterator it = _clients.find(userSocket);
+	if (it != _clients.end())
+	{
+		FD_CLR(userSocket, &_readfds);
+		close(userSocket);
+		delete it->second;
+		it->second = NULL;
+		_clients.erase(it);
+	}
+}
+
+void	Server::erase_all_users()
+{
+	std::vector<type_sock> death_note;
+	for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); it++)
+		death_note.push_back(it->first);
+
+	for (std::vector<type_sock>::iterator it = death_note.begin(); it != death_note.end(); it = death_note.begin())
+	{
+		erase_one_user(*it);
+		std::cout << "user erased from map" << std::endl;
+		death_note.erase(it);
+		std::cout << "user erased from death note" << std::endl;
+	}
+}
+
 std::string	Server::recv_from_user(type_sock userSocket)
 {
 	std::string	str;
@@ -105,7 +135,7 @@ std::string	Server::recv_from_user(type_sock userSocket)
 	ssize_t bytes = recv(userSocket, buffer, BUFFER_SIZE, MSG_DONTWAIT);
 	// bytes vaut 0 si user ctrl C, bytes vaut 1 si chaine vide
 
-	std::cout << "input recieved. bytes = " << bytes << std::endl;
+	std::cout << "input received. bytes = " << bytes << std::endl;
 
 	if (bytes > 0)
 	{
@@ -115,24 +145,33 @@ std::string	Server::recv_from_user(type_sock userSocket)
 		std::cout << "input cleaned" << std::endl;
 		return (str);
 	}
-	if (bytes == 0)
+	else if (bytes == 0)
 	{
-	// Déconnexion (0) : Si recv() renvoie 0, cela signifie généralement que la connexion a été fermée par le côté distant (le client a fermé la connexion).
-
+		std::cout << "except disconnection detected, bytes == 0" << std::endl;
+		throw (std::runtime_error("client disconnected"));
+	}
+	else if (bytes < 0)
+	{
+		std::cout << "except Problem with recv, bytes == -1" << std::endl;
+		throw (std::runtime_error("recv error"));
 	}
 	std::cout << "empty string is returned" << std::endl;
-	if (bytes < 0)/////////// ou egal a 0 ? quid si chaine vide
-	{
-		std::cout << "Problem with read !" << std::endl;
-	}
 	return ("");
-// 	Erreur de connexion (-1) : Si recv() renvoie -1, cela peut indiquer qu'une erreur générale de réception s'est produite.
-// Erreur de non-disponibilité de données (EAGAIN ou EWOULDBLOCK) : En mode non bloquant, recv() peut renvoyer -1 avec l'erreur EAGAIN ou EWOULDBLOCK si aucune donnée n'est immédiatement disponible à lire.
-// Erreur de socket (EBADF) : Si le descripteur de socket fourni n'est pas valide, recv() peut renvoyer -1 avec l'erreur EBADF.
-// Erreur de mémoire (ENOMEM) : Si le système n'a pas suffisamment de mémoire pour effectuer l'opération de réception, recv() peut renvoyer -1 avec l'erreur ENOMEM.
-// Erreur d'interruption système (EINTR) : Si un signal est reçu pendant l'exécution de recv(), elle peut être interrompue et renvoyer -1 avec l'erreur EINTR.
-// Erreur de socket non valide (ENOTSOCK) : Si le descripteur fourni n'est pas un socket valide, recv() peut renvoyer -1 avec l'erreur ENOTSOCK.
-// Erreur de socket non supporté (EOPNOTSUPP) : Si l'opération demandée n'est pas prise en charge par le socket, recv() peut renvoyer -1 avec l'erreur EOPNOTSUPP.
+}
+
+std::string Server::get_clientDatas(type_sock socket)
+{
+	std::string str = "";
+	std::string tmp = _clients[socket]->get_nickname();
+	std::ostringstream oss;
+	oss << socket;
+	if (tmp != "")
+		str += "Nickname \'" + tmp + "\'; ";
+	tmp = _clients[socket]->get_username();
+	if (tmp != "")
+		str += "Username \'" + tmp + "\'; ";
+	str += "Socket " + oss.str() + ";";
+	return (str);
 }
 
 void	Server::run()
@@ -140,7 +179,7 @@ void	Server::run()
 	type_sock socket = 0;
 	while (true)
 	{
-		std::cout << "while" << std::endl;
+		std::cout << std::endl << "while" << std::endl;
 
 		reset_fd_set();
 		std::cout << "fd_set reseted" << std::endl;
@@ -167,7 +206,7 @@ void	Server::run()
 
 				if (_clients[socket]->get_userState() == 0)
 					send(socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
-				else if (_clients[socket]->get_userState() == 1)
+				else if (_clients[socket]->get_userState() == 1)////////////////////////////utile?
 					send(socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
 				else if (_clients[socket]->get_userState() == 2)
 					send(socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
@@ -177,86 +216,121 @@ void	Server::run()
 		// Handle input from clients
 		std::vector<type_sock> disconnectedClients;
 
-		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); it++)
 		{
+			std::cout << "for" << std::endl;
 			socket = it->first;
 			if (check_activity(it->second->get_userSocket()))
 			{
+				std::cout << "activity checked" << std::endl;
 				try
 				{
 					std::string	input = recv_from_user(socket);
+					std::cout << "input correctly recieved" << std::endl;
+
 					checkCommand(input, socket);
+					std::cout << "command checked" << std::endl;
 				}
 				catch(std::exception const& e)
 				{
-					std::cout << e.what() << std::endl;
+					std::string str = e.what();
+					if (str == "client disconnected")
+						std::cout << "Client disconnected. Info : " << get_clientDatas(socket) << std::endl;
+					else if (str == "recv error")
+						std::cout << "Lost connection with client. Info : " << get_clientDatas(socket) << std::endl;
+					else//////////////////test
+						std::cout << "WTF is going on !" << std::endl;
+					disconnectedClients.push_back(socket);
+					// erase_one_user(socket);
+					// std::cout << "user erased" << std::endl;
 				}
 			}
 		}
-		// // Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D
-		// for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end();)
-		// {
-		// 	type_sock client_socket = it->first;
-		// 	if (std::find(disconnectedClients.begin(), disconnectedClients.end(), client_socket) != disconnectedClients.end())
-		// 	{
-		// 		close(client_socket);
-		// 		delete it->second;
-		// 		_clients.erase(it);
-		// 		it = _clients.begin();
-		// 	}
-		// 	else
-		// 		it++;
-		// }
+
+		// Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D ////////challenge accepted ;)
+		for (std::vector<type_sock>::iterator it = disconnectedClients.begin(); it != disconnectedClients.end(); it = disconnectedClients.begin())
+		{
+			erase_one_user(*it);
+			std::cout << "user erased from map" << std::endl;
+			disconnectedClients.erase(it);
+			std::cout << "user erased from vector" << std::endl;
+		}
 	}
 }
 
-type_sock Server::checkCommand(std::string arg, type_sock client_socket)
+void	Server::ask_for_login_credentials(std::string input, type_sock client_socket, int lvl)
 {
-	if (_clients[client_socket]->get_userState() == 0)
+	if (lvl == 0)
 	{
-		if (cmdPass(arg))
+		std::cout << "user is lvl 0" << std::endl;
+		if (cmdPass(input))
+		{
 			_clients[client_socket]->set_userState(1);
+			std::cout << "user has become lvl 1" << std::endl;
+			send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
+		}
 		else
-			return (0);
+			send(client_socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
+			//ask for password again
 	}
-	else if (_clients[client_socket]->get_userState() == 1)
+	else if (lvl == 1)
 	{
-		if (cmdNick(arg, client_socket))
+		std::cout << "user is lvl 1" << std::endl;
+
+		if (cmdNick(input, client_socket))
+		{
 			_clients[client_socket]->set_userState(2);
+			std::cout << "user has become lvl 2" << std::endl;
+			send(client_socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+		}
 		else
-			return (0);
+			send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
+			//ask for another nickname
 	}
-	else if (_clients[client_socket]->get_userState() == 2)
+	else if (lvl == 2)
 	{
-		if (cmdUser(arg, client_socket))
+		std::cout << "user is lvl 2" << std::endl;
+
+		if (cmdUser(input, client_socket))
+		{
 			_clients[client_socket]->set_userState(3);
+			std::cout << "user has become lvl 3" << std::endl;
+			send(client_socket, "You are now one of us !\n", strlen("You are now one of us !\n"), 0);
+		}
 		else
-			return (0);
+			send(client_socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+			//ask for a valid username
 	}
-	else
+}
+
+void Server::checkCommand(std::string input, type_sock client_socket)
+{
+	int	lvl = _clients[client_socket]->get_userState();
+	if (lvl < 3)
+		ask_for_login_credentials(input, client_socket, lvl);
+	else // utiliser un stringstream ici aussi pour comparer les noms de commandes, le compare est moins adapte qu'un std::string test == std::string cmd
 	{
-		if (arg.compare(0, 4, "JOIN") == 0)
-			cmdJoin(arg, client_socket);
-		else if (arg.compare(0, 7, "PRIVMSG") == 0)
-			cmdPrivMsg(arg, client_socket);
-		else if (arg.compare(0, 6, "INVITE") == 0)
-			cmdInvite(arg, client_socket);
-		else if (arg.compare(0, 4, "KICK") == 0)
-			cmdKick(arg, client_socket);
-		else if (arg.compare(0, 4, "MODE") == 0)
-			cmdMode(arg, client_socket);
-		else if (arg.compare(0, 5, "TOPIC") == 0)
-			cmdTopic(arg, client_socket);
-		else if (arg.compare(0, 4, "NICK") == 0)
-			cmdNick(arg, client_socket);
-		else if (arg.compare(0, 4, "QUIT") == 0 && arg.size() == 5)
-			return (1);
+		if (input.compare(0, 4, "JOIN") == 0)
+			cmdJoin(input, client_socket);
+		else if (input.compare(0, 7, "PRIVMSG") == 0)
+			cmdPrivMsg(input, client_socket);
+		else if (input.compare(0, 6, "INVITE") == 0)
+			cmdInvite(input, client_socket);
+		else if (input.compare(0, 4, "KICK") == 0)
+			cmdKick(input, client_socket);
+		else if (input.compare(0, 4, "MODE") == 0)
+			cmdMode(input, client_socket);
+		else if (input.compare(0, 5, "TOPIC") == 0)
+			cmdTopic(input, client_socket);
+		else if (input.compare(0, 4, "NICK") == 0)
+			cmdNick(input, client_socket);
+		else if (input.compare(0, 4, "QUIT") == 0 && input.size() == 5)
+			return ;///////////////////////////////////a modifier
 		else
 			send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
 			strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
 	}
-	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << arg << std::endl;
-	return (0);
+	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << input << std::endl;
 }
 
 bool Server::cmdPass(std::string arg)
