@@ -27,6 +27,11 @@ void	User::set_username(std::string username)
 	_username = username;
 }
 
+void	User::set_userState(int state)
+{
+	_userState = state;
+}
+
 void	User::set_nickname(std::string nickname)
 {
 	_nickname = nickname;
@@ -45,4 +50,9 @@ std::string User::get_username() const
 type_sock	User::get_userSocket() const
 {
 	return (_userSocket);
+}
+
+int			User::get_userState() const
+{
+	return (_userState);
 }

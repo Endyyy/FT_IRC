@@ -56,7 +56,7 @@ class Server
 		void		set_address();
 
 
-		bool	cmdPass(std::string arg, type_sock client_socket);
+		bool	cmdPass(std::string arg);
 		bool	cmdNick(std::string arg, type_sock client_socket);
 		bool	cmdUser(std::string arg, type_sock client_socket);
 		bool	cmdJoin(std::string arg, type_sock client_socket);

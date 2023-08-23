@@ -267,6 +267,8 @@ void	Server::run()
 
 type_sock Server::checkCommand(std::string arg, type_sock client_socket)
 {
+	int userState = _clients[client_socket]->get_userState();
+	std::cout << userState << std::endl;
 	if (arg.compare(0, 4, "JOIN") == 0)
 		cmdJoin(arg, client_socket);
 	else if (arg.compare(0, 7, "PRIVMSG") == 0)
@@ -290,9 +292,8 @@ type_sock Server::checkCommand(std::string arg, type_sock client_socket)
 	return (0);
 }
 
-bool Server::cmdPass(std::string arg, type_sock socket)
+bool Server::cmdPass(std::string arg)
 {
-	(void)socket;//a utiliser pour ++ le state du user si password correct
 	std::stringstream	stream(arg);
 	std::string			cmd;
 	std::string			passwd;

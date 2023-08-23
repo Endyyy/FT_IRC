@@ -32,10 +32,12 @@ class User
 
 		void	set_username(std::string username);
 		void	set_nickname(std::string username);
+		void	set_userState(int state);
 
 		std::string get_nickname() const;
 		std::string get_username() const;
 		type_sock	get_userSocket() const;
+		int			get_userState() const;
 };
 
 #endif
