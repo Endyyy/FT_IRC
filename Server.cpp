@@ -74,9 +74,9 @@ void	Server::waiting_for_activity()
 		throw (ERR_SELECTFAILURE());
 }
 
-bool	Server::check_server_activity()
+bool	Server::check_activity(type_sock socket)
 {
-	return (FD_ISSET(_serverSocket, &_readfds));
+	return (FD_ISSET(socket, &_readfds));
 }
 
 type_sock	Server::get_incoming_socket()
@@ -165,7 +165,7 @@ void	Server::run()
 		std::cout << "waiting is over" << std::endl;
 
 		// New incoming connection
-		if (check_server_activity())
+		if (check_activity(_serverSocket))
 		{
 			std::cout << "activity checked" << std::endl;
 
@@ -190,31 +190,31 @@ void	Server::run()
 		std::vector<type_sock> disconnectedClients;
 		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
-			type_sock client_socket = it->first;
-			if (FD_ISSET(client_socket, &_readfds))
+			socket = it->first;
+			if (check_activity(it->second->get_userSocket()))
 			{
 				char buffer[BUFFER_SIZE] = {0};
-				int valread = read(client_socket, buffer, BUFFER_SIZE);
-				if (valread == 0)
+				int len = read(socket, buffer, BUFFER_SIZE);
+				if (len == 0)
 				{
 					// Client disconnected
-					std::cout << "Client disconnected, socket fd: " << client_socket << std::endl;
-					close(client_socket);
-					disconnectedClients.push_back(client_socket);
+					std::cout << "Client disconnected, socket fd: " << socket << std::endl;
+					close(socket);
+					disconnectedClients.push_back(socket);
 				}
-				else if (valread == -1)
+				else if (len == -1)
 				{
 					// Error or abrupt disconnection
-					std::cerr << "Error reading data from client, socket fd: " << client_socket << std::endl;
-					close(client_socket);
-					disconnectedClients.push_back(client_socket);
+					std::cerr << "Error reading data from client, socket fd: " << socket << std::endl;
+					close(socket);
+					disconnectedClients.push_back(socket);
 				}
 				else {
 					// Handle data from the client
-					if (checkCommand(client_socket, buffer) == 1)
+					if (checkCommand(socket, buffer) == 1)
 					{
-						close(client_socket);
-						disconnectedClients.push_back(client_socket);
+						close(socket);
+						disconnectedClients.push_back(socket);
 					}
 				}
 			}
