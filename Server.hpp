@@ -51,20 +51,21 @@ class Server
 		void		complete_registration();
 		type_sock	get_incoming_socket();
 		void		add_new_user(type_sock userSocket);
-		bool		read_from_user(int userSocket, char const* sentence, int step);
+		std::string	recv_from_user(type_sock userSocket);
+		// bool		read_from_user(int userSocket, char const* sentence, int step);
 		void		set_address();
 
 
-		bool	cmdPass(std::string arg);
-		bool	cmdNick(std::string arg, int sd);
-		bool	cmdUser(std::string arg, int sd);
-		bool	cmdJoin(std::string arg, int sd);
-		void	cmdKick(std::string arg, int sd);
-		void	cmdInvite(std::string arg, int sd);
-		void	cmdTopic(std::string arg, int sd);
-		void	cmdMode(std::string arg, int sd);
-		void	cmdPrivMsg(std::string arg, int sd);
-		int		checkCommand(int sd, char *buffer);
+		bool	cmdPass(std::string arg, type_sock client_socket);
+		bool	cmdNick(std::string arg, type_sock client_socket);
+		bool	cmdUser(std::string arg, type_sock client_socket);
+		bool	cmdJoin(std::string arg, type_sock client_socket);
+		void	cmdKick(std::string arg, type_sock client_socket);
+		void	cmdInvite(std::string arg, type_sock client_socket);
+		void	cmdTopic(std::string arg, type_sock client_socket);
+		void	cmdMode(std::string arg, type_sock client_socket);
+		void	cmdPrivMsg(std::string arg, type_sock client_socket);
+		int		checkCommand(std::string arg, type_sock client_socket);
 
 		//ERROR_MSGS
 

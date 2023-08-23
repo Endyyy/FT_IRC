@@ -98,39 +98,48 @@ void	Server::add_new_user(type_sock userSocket)
 	std::endl;
 }
 
-bool	Server::read_from_user(type_sock userSocket, char const* sentence, int step)
+// std::string	Server::recv_from_user(type_sock userSocket, char const* sentence, int step)
+std::string	Server::recv_from_user(type_sock userSocket)
 {
 	std::string	str;
 	char		buffer[BUFFER_SIZE] = {0};
+	ssize_t bytes = recv(userSocket, buffer, BUFFER_SIZE, MSG_DONTWAIT);
+	std::cout << "input recieved" << std::endl;
 
-	send(userSocket, sentence, strlen(sentence), 0);///////////segfault si ctrl c dans le user
-	int len = read(userSocket, buffer, BUFFER_SIZE);
-	std::cout << "TEST :" << len << " " << userSocket << " " << buffer << std::endl;
-	if (len < 0)/////////// ou egal a 0 ? quid si chaine vide
-	{
-		std::cout << "Problem with read !" << std::endl;
-		return (false);
-	}
 	str = buffer;
 	str = str.erase(str.size() - 1);
-	// std::cout << "buffer is : " << buffer << std::endl;
-	// std::cout << "str    is : " << str << std::endl;
-	if (step == 1)
+	std::cout << "input cleaned" << std::endl;
+
+	if (bytes > 0)
 	{
-		std::cout << "read_from_user step 1" << std::endl;
-		return (cmdPass(str));
+		std::cout << "bytes > 0" << std::endl;
+		return (str);
 	}
-	if (step == 2)
-	{
-		std::cout << "read_from_user step 2" << std::endl;
-		return (cmdNick(str, userSocket));
-	}
-	if (step == 3)
-	{
-		std::cout << "read_from_user step 3" << std::endl;
-		return (cmdUser(str, userSocket));
-	}
-	return (false);
+	std::cout << "empty string is returned" << std::endl;
+	return ("");
+	// if (bytes < 0)/////////// ou egal a 0 ? quid si chaine vide
+	// {
+	// 	std::cout << "Problem with read !" << std::endl;
+	// 	return (false);
+	// }
+	// // std::cout << "buffer is : " << buffer << std::endl;
+	// // std::cout << "str    is : " << str << std::endl;
+	// if (step == 1)
+	// {
+	// 	std::cout << "recv_from_user step 1" << std::endl;
+	// 	return (cmdPass(str));
+	// }
+	// if (step == 2)
+	// {
+	// 	std::cout << "recv_from_user step 2" << std::endl;
+	// 	return (cmdNick(str, userSocket));
+	// }
+	// if (step == 3)
+	// {
+	// 	std::cout << "recv_from_user step 3" << std::endl;
+	// 	return (cmdUser(str, userSocket));
+	// }
+	// return (false);
 }
 
 // void	Server::complete_registration()
@@ -138,9 +147,9 @@ bool	Server::read_from_user(type_sock userSocket, char const* sentence, int step
 // 	type_sock	tmp_userSocket = get_incoming_socket();
 // 	// try
 // 	// {
-// 	// 	read_from_user(tmp_userSocket, "PASS <password>\n", 1);
-// 	// 	read_from_user(tmp_userSocket, "NICK <nickname>\n", 2);
-// 	// 	read_from_user(tmp_userSocket, "USER :<username>\n", 3);
+// 	// 	recv_from_user(tmp_userSocket, "PASS <password>\n", 1);
+// 	// 	recv_from_user(tmp_userSocket, "NICK <nickname>\n", 2);
+// 	// 	recv_from_user(tmp_userSocket, "USER :<username>\n", 3);
 // 	// }
 // 	// catch (const std::exception& e)
 // 	// {
@@ -193,30 +202,50 @@ void	Server::run()
 			socket = it->first;
 			if (check_activity(it->second->get_userSocket()))
 			{
-				char buffer[BUFFER_SIZE] = {0};
-				int len = read(socket, buffer, BUFFER_SIZE);
-				if (len == 0)
+				try
 				{
-					// Client disconnected
-					std::cout << "Client disconnected, socket fd: " << socket << std::endl;
-					close(socket);
-					disconnectedClients.push_back(socket);
+					std::string	input = recv_from_user(socket);
+					checkCommand(input, socket);
 				}
-				else if (len == -1)
+				catch(std::exception const& e)
 				{
-					// Error or abrupt disconnection
-					std::cerr << "Error reading data from client, socket fd: " << socket << std::endl;
-					close(socket);
-					disconnectedClients.push_back(socket);
+					std::cout << e.what() << std::endl;
 				}
-				else {
-					// Handle data from the client
-					if (checkCommand(socket, buffer) == 1)
-					{
-						close(socket);
-						disconnectedClients.push_back(socket);
-					}
-				}
+
+
+
+
+
+
+
+
+
+
+
+				// // char buffer[BUFFER_SIZE] = {0};
+				// // int len = read(socket, buffer, BUFFER_SIZE);
+				// if (len == 0)
+				// {
+				// 	// Client disconnected
+				// 	std::cout << "Client disconnected, socket fd: " << socket << std::endl;
+				// 	close(socket);
+				// 	disconnectedClients.push_back(socket);
+				// }
+				// else if (len == -1)
+				// {
+				// 	// Error or abrupt disconnection
+				// 	std::cerr << "Error reading data from client, socket fd: " << socket << std::endl;
+				// 	close(socket);
+				// 	disconnectedClients.push_back(socket);
+				// }
+				// else {
+				// 	// Handle data from the client
+				// 	if (checkCommand(socket, buffer) == 1)
+				// 	{
+				// 		close(socket);
+				// 		disconnectedClients.push_back(socket);
+				// 	}
+				// }
 			}
 		}
 		// // Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D
@@ -236,8 +265,34 @@ void	Server::run()
 	}
 }
 
-bool Server::cmdPass(std::string arg)
+type_sock Server::checkCommand(std::string arg, type_sock client_socket)
 {
+	if (arg.compare(0, 4, "JOIN") == 0)
+		cmdJoin(arg, client_socket);
+	else if (arg.compare(0, 7, "PRIVMSG") == 0)
+		cmdPrivMsg(arg, client_socket);
+	else if (arg.compare(0, 6, "INVITE") == 0)
+		cmdInvite(arg, client_socket);
+	else if (arg.compare(0, 4, "KICK") == 0)
+		cmdKick(arg, client_socket);
+	else if (arg.compare(0, 4, "MODE") == 0)
+		cmdMode(arg, client_socket);
+	else if (arg.compare(0, 5, "TOPIC") == 0)
+		cmdTopic(arg, client_socket);
+	else if (arg.compare(0, 4, "NICK") == 0)
+		cmdNick(arg, client_socket);
+	else if (arg.compare(0, 4, "QUIT") == 0 && arg.size() == 5)
+		return (1);
+	else
+		send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
+		 strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
+	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << arg << std::endl;
+	return (0);
+}
+
+bool Server::cmdPass(std::string arg, type_sock socket)
+{
+	(void)socket;//a utiliser pour ++ le state du user si password correct
 	std::stringstream	stream(arg);
 	std::string			cmd;
 	std::string			passwd;
@@ -405,31 +460,6 @@ void Server::cmdPrivMsg(std::string arg, int client_socket)
 	(void)client_socket;
 }
 
-int Server::checkCommand(int client_socket, char *buffer)
-{
-	std::string arg = buffer;
-	if (arg.compare(0, 4, "JOIN") == 0)
-		cmdJoin(arg, client_socket);
-	else if (arg.compare(0, 7, "PRIVMSG") == 0)
-		cmdPrivMsg(arg, client_socket);
-	else if (arg.compare(0, 6, "INVITE") == 0)
-		cmdInvite(arg, client_socket);
-	else if (arg.compare(0, 4, "KICK") == 0)
-		cmdKick(arg, client_socket);
-	else if (arg.compare(0, 4, "MODE") == 0)
-		cmdMode(arg, client_socket);
-	else if (arg.compare(0, 5, "TOPIC") == 0)
-		cmdTopic(arg, client_socket);
-	else if (arg.compare(0, 4, "NICK") == 0)
-		cmdNick(arg, client_socket);
-	else if (arg.compare(0, 4, "QUIT") == 0 && arg.size() == 5)
-		return (1);
-	else
-		send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
-		 strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
-	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << buffer << std::endl;
-	return (0);
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ERROR_MSGS
