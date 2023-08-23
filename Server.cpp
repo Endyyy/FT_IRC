@@ -188,7 +188,12 @@ void	Server::run()
 				add_new_user(socket);
 				std::cout << "new user added" << std::endl;
 
-				send(socket, "Enter password. [PASS <password>]\n", strlen("Enter password. [PASS <password>]\n"), 0);
+				if (_clients[socket]->get_userState() == 0)
+					send(socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
+				else if (_clients[socket]->get_userState() == 1)
+					send(socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
+				else if (_clients[socket]->get_userState() == 2)
+					send(socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
 			}
 			//envoyer le message approprie au client pour qu'il ecrive son mdp ou nick ou user
 			//si state a trois, ne rien print du tout
@@ -267,27 +272,49 @@ void	Server::run()
 
 type_sock Server::checkCommand(std::string arg, type_sock client_socket)
 {
-	int userState = _clients[client_socket]->get_userState();
-	std::cout << userState << std::endl;
-	if (arg.compare(0, 4, "JOIN") == 0)
-		cmdJoin(arg, client_socket);
-	else if (arg.compare(0, 7, "PRIVMSG") == 0)
-		cmdPrivMsg(arg, client_socket);
-	else if (arg.compare(0, 6, "INVITE") == 0)
-		cmdInvite(arg, client_socket);
-	else if (arg.compare(0, 4, "KICK") == 0)
-		cmdKick(arg, client_socket);
-	else if (arg.compare(0, 4, "MODE") == 0)
-		cmdMode(arg, client_socket);
-	else if (arg.compare(0, 5, "TOPIC") == 0)
-		cmdTopic(arg, client_socket);
-	else if (arg.compare(0, 4, "NICK") == 0)
-		cmdNick(arg, client_socket);
-	else if (arg.compare(0, 4, "QUIT") == 0 && arg.size() == 5)
-		return (1);
+	if (_clients[client_socket]->get_userState() == 0)
+	{
+		if (cmdPass(arg))
+			_clients[client_socket]->set_userState(1);
+		else
+			return (0);
+	}
+	else if (_clients[client_socket]->get_userState() == 1)
+	{
+		if (cmdNick(arg, client_socket))
+			_clients[client_socket]->set_userState(2);
+		else
+			return (0);
+	}
+	else if (_clients[client_socket]->get_userState() == 2)
+	{
+		if (cmdUser(arg, client_socket))
+			_clients[client_socket]->set_userState(3);
+		else
+			return (0);
+	}
 	else
-		send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
-		 strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
+	{
+		if (arg.compare(0, 4, "JOIN") == 0)
+			cmdJoin(arg, client_socket);
+		else if (arg.compare(0, 7, "PRIVMSG") == 0)
+			cmdPrivMsg(arg, client_socket);
+		else if (arg.compare(0, 6, "INVITE") == 0)
+			cmdInvite(arg, client_socket);
+		else if (arg.compare(0, 4, "KICK") == 0)
+			cmdKick(arg, client_socket);
+		else if (arg.compare(0, 4, "MODE") == 0)
+			cmdMode(arg, client_socket);
+		else if (arg.compare(0, 5, "TOPIC") == 0)
+			cmdTopic(arg, client_socket);
+		else if (arg.compare(0, 4, "NICK") == 0)
+			cmdNick(arg, client_socket);
+		else if (arg.compare(0, 4, "QUIT") == 0 && arg.size() == 5)
+			return (1);
+		else
+			send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
+			strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
+	}
 	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << arg << std::endl;
 	return (0);
 }
