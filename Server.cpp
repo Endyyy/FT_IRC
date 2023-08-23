@@ -98,65 +98,42 @@ void	Server::add_new_user(type_sock userSocket)
 	std::endl;
 }
 
-// std::string	Server::recv_from_user(type_sock userSocket, char const* sentence, int step)
 std::string	Server::recv_from_user(type_sock userSocket)
 {
 	std::string	str;
 	char		buffer[BUFFER_SIZE] = {0};
 	ssize_t bytes = recv(userSocket, buffer, BUFFER_SIZE, MSG_DONTWAIT);
-	std::cout << "input recieved" << std::endl;
+	// bytes vaut 0 si user ctrl C, bytes vaut 1 si chaine vide
 
-	str = buffer;
-	str = str.erase(str.size() - 1);
-	std::cout << "input cleaned" << std::endl;
+	std::cout << "input recieved. bytes = " << bytes << std::endl;
 
 	if (bytes > 0)
 	{
 		std::cout << "bytes > 0" << std::endl;
+		str = buffer;
+		str = str.erase(str.size() - 1);
+		std::cout << "input cleaned" << std::endl;
 		return (str);
 	}
+	if (bytes == 0)
+	{
+	// Déconnexion (0) : Si recv() renvoie 0, cela signifie généralement que la connexion a été fermée par le côté distant (le client a fermé la connexion).
+
+	}
 	std::cout << "empty string is returned" << std::endl;
+	if (bytes < 0)/////////// ou egal a 0 ? quid si chaine vide
+	{
+		std::cout << "Problem with read !" << std::endl;
+	}
 	return ("");
-	// if (bytes < 0)/////////// ou egal a 0 ? quid si chaine vide
-	// {
-	// 	std::cout << "Problem with read !" << std::endl;
-	// 	return (false);
-	// }
-	// // std::cout << "buffer is : " << buffer << std::endl;
-	// // std::cout << "str    is : " << str << std::endl;
-	// if (step == 1)
-	// {
-	// 	std::cout << "recv_from_user step 1" << std::endl;
-	// 	return (cmdPass(str));
-	// }
-	// if (step == 2)
-	// {
-	// 	std::cout << "recv_from_user step 2" << std::endl;
-	// 	return (cmdNick(str, userSocket));
-	// }
-	// if (step == 3)
-	// {
-	// 	std::cout << "recv_from_user step 3" << std::endl;
-	// 	return (cmdUser(str, userSocket));
-	// }
-	// return (false);
+// 	Erreur de connexion (-1) : Si recv() renvoie -1, cela peut indiquer qu'une erreur générale de réception s'est produite.
+// Erreur de non-disponibilité de données (EAGAIN ou EWOULDBLOCK) : En mode non bloquant, recv() peut renvoyer -1 avec l'erreur EAGAIN ou EWOULDBLOCK si aucune donnée n'est immédiatement disponible à lire.
+// Erreur de socket (EBADF) : Si le descripteur de socket fourni n'est pas valide, recv() peut renvoyer -1 avec l'erreur EBADF.
+// Erreur de mémoire (ENOMEM) : Si le système n'a pas suffisamment de mémoire pour effectuer l'opération de réception, recv() peut renvoyer -1 avec l'erreur ENOMEM.
+// Erreur d'interruption système (EINTR) : Si un signal est reçu pendant l'exécution de recv(), elle peut être interrompue et renvoyer -1 avec l'erreur EINTR.
+// Erreur de socket non valide (ENOTSOCK) : Si le descripteur fourni n'est pas un socket valide, recv() peut renvoyer -1 avec l'erreur ENOTSOCK.
+// Erreur de socket non supporté (EOPNOTSUPP) : Si l'opération demandée n'est pas prise en charge par le socket, recv() peut renvoyer -1 avec l'erreur EOPNOTSUPP.
 }
-
-// void	Server::complete_registration()
-// {
-// 	type_sock	tmp_userSocket = get_incoming_socket();
-// 	// try
-// 	// {
-// 	// 	recv_from_user(tmp_userSocket, "PASS <password>\n", 1);
-// 	// 	recv_from_user(tmp_userSocket, "NICK <nickname>\n", 2);
-// 	// 	recv_from_user(tmp_userSocket, "USER :<username>\n", 3);
-// 	// }
-// 	// catch (const std::exception& e)
-// 	// {
-
-// 	// }
-// 	std::cout << "registration end" << std::endl;
-// }
 
 void	Server::run()
 {
@@ -190,13 +167,11 @@ void	Server::run()
 
 				send(socket, "Enter password. [PASS <password>]\n", strlen("Enter password. [PASS <password>]\n"), 0);
 			}
-			//envoyer le message approprie au client pour qu'il ecrive son mdp ou nick ou user
-			//si state a trois, ne rien print du tout
 		}
 
-
-		// Handle data from clients
+		// Handle input from clients
 		std::vector<type_sock> disconnectedClients;
+
 		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			socket = it->first;
@@ -211,41 +186,6 @@ void	Server::run()
 				{
 					std::cout << e.what() << std::endl;
 				}
-
-
-
-
-
-
-
-
-
-
-
-				// // char buffer[BUFFER_SIZE] = {0};
-				// // int len = read(socket, buffer, BUFFER_SIZE);
-				// if (len == 0)
-				// {
-				// 	// Client disconnected
-				// 	std::cout << "Client disconnected, socket fd: " << socket << std::endl;
-				// 	close(socket);
-				// 	disconnectedClients.push_back(socket);
-				// }
-				// else if (len == -1)
-				// {
-				// 	// Error or abrupt disconnection
-				// 	std::cerr << "Error reading data from client, socket fd: " << socket << std::endl;
-				// 	close(socket);
-				// 	disconnectedClients.push_back(socket);
-				// }
-				// else {
-				// 	// Handle data from the client
-				// 	if (checkCommand(socket, buffer) == 1)
-				// 	{
-				// 		close(socket);
-				// 		disconnectedClients.push_back(socket);
-				// 	}
-				// }
 			}
 		}
 		// // Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D
@@ -268,7 +208,7 @@ void	Server::run()
 type_sock Server::checkCommand(std::string arg, type_sock client_socket)
 {
 	int userState = _clients[client_socket]->get_userState();
-	std::cout << userState << std::endl;
+	std::cout << "Check Command. user _state = " << userState << std::endl;
 	if (arg.compare(0, 4, "JOIN") == 0)
 		cmdJoin(arg, client_socket);
 	else if (arg.compare(0, 7, "PRIVMSG") == 0)
@@ -288,7 +228,7 @@ type_sock Server::checkCommand(std::string arg, type_sock client_socket)
 	else
 		send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
 		 strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
-	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << arg << std::endl;
+	std::cout << "Received input from client, socket fd: " << client_socket << ", Input: " << arg << std::endl;
 	return (0);
 }
 
