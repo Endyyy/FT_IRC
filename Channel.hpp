@@ -20,20 +20,21 @@ class Channel
 		std::string	_name;
 		std::string	_topic;
 		std::string	_password;
-		bool		_topic_state;
 		bool		_invite_state;
-		bool		_password_state;
 		std::vector<User*>	_reg_users;
-		std::vector<User*>	_reg_moderators;
+		std::vector<User*>	_reg_ope;
 		Channel();
 		Channel(Channel const& source);
 		Channel& operator=(Channel const& source);
 
 	public:
-		Channel(const std::string& name);
+		Channel(const std::string& name, User *user);
 		~Channel();
 
+		std::string get_password() const;
+		bool	hasUser(User* user) const;
 		void	addUser(User *user);
+		void	addOpe(User *user);
 		void	removeUser(User *user);
 		int		getUserPrivilege(User *user) const;
 		void sendMessage(const std::string& message, type_sock sender_socket);

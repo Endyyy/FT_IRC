@@ -305,30 +305,36 @@ void	Server::ask_for_login_credentials(std::string input, type_sock client_socke
 
 void Server::checkCommand(std::string input, type_sock client_socket)
 {
-	int	lvl = _clients[client_socket]->get_userState();
+	int						lvl = _clients[client_socket]->get_userState();
+	std::stringstream		stream(input);
+	std::string				cmd;
+
 	if (lvl < 3)
 		ask_for_login_credentials(input, client_socket, lvl);
-	else // utiliser un stringstream ici aussi pour comparer les noms de commandes, le compare est moins adapte qu'un std::string test == std::string cmd
+	else
 	{
-		if (input.compare(0, 4, "JOIN") == 0)
-			cmdJoin(input, client_socket);
-		else if (input.compare(0, 7, "PRIVMSG") == 0)
-			cmdPrivMsg(input, client_socket);
-		else if (input.compare(0, 6, "INVITE") == 0)
-			cmdInvite(input, client_socket);
-		else if (input.compare(0, 4, "KICK") == 0)
-			cmdKick(input, client_socket);
-		else if (input.compare(0, 4, "MODE") == 0)
-			cmdMode(input, client_socket);
-		else if (input.compare(0, 5, "TOPIC") == 0)
-			cmdTopic(input, client_socket);
-		else if (input.compare(0, 4, "NICK") == 0)
-			cmdNick(input, client_socket);
-		else if (input.compare(0, 4, "QUIT") == 0 && input.size() == 5)
-			return ;///////////////////////////////////a modifier
-		else
-			send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
-			strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
+		if (stream >> cmd)
+		{
+			if (cmd == "JOIN")
+				cmdJoin(input, client_socket);
+			else if (cmd == "PRIVMSG")
+				cmdPrivMsg(input, client_socket);
+			else if (cmd == "INVITE")
+				cmdInvite(input, client_socket);
+			else if (cmd == "KICK")
+				cmdKick(input, client_socket);
+			else if (cmd == "MODE")
+				cmdMode(input, client_socket);
+			else if (cmd == "TOPIC")
+				cmdTopic(input, client_socket);
+			else if (cmd == "NICK")
+				cmdNick(input, client_socket);
+			else if (cmd == "QUIT" && input.size() == 4)
+				return ;///////////////////////////////////a modifier
+			else
+				send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n",\
+				strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, QUIT.\n"), 0);
+		}
 	}
 	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << input << std::endl;
 }
@@ -466,33 +472,56 @@ void Server::cmdMode(std::string arg, int client_socket)
 	(void)client_socket;
 }
 
-bool Server::cmdJoin(std::string arg, int client_socket)
+bool Server::cmdJoin(std::string arg, int client_socket) //potentiellement passe en void
 {
 	std::stringstream	stream(arg);
 	std::string			cmd;
 	std::string			channel_name;
 	std::string			key;
 
-	if (!(stream >> cmd) || cmd != "JOIN") {
+	if (!(stream >> cmd) || cmd != "JOIN") 	//Check nom de la commande
 		return (false);
-	}
-	if (!(stream >> channel_name)) {
+	if (!(stream >> channel_name)) 			//Check nom du channel
 		return (false);
-	}
-	if (stream)
-	{
-		stream >> key;
-		if (channel_name[0] != '#' || channel_name.size() == 1)
+	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
 			return (false);
+	if (stream)												//Recupere potentiel 3eme argument
+		stream >> key;
+	if (_channels.find(channel_name) == _channels.end())  //Check si channel existe
+	{
+		if (!key.empty())								//Si channel n'existe pas et que le client a mis un pass, faux
+		{
+			send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+			return (false);
+		}
+		_channels[channel_name] = new Channel(channel_name, _clients[client_socket]);  //Sinon cree channel
+		send(client_socket, "New channel created !\n", strlen("New channel created !\n"), 0);
+		return (true);
 	}
-	if (_channels.find(channel_name) == _channels.end())
-		_channels[channel_name] = new Channel(channel_name);
-	User* user = _clients[client_socket];
-	_channels[channel_name]->addUser(user);
-	std::string join_message = "JOIN " + channel_name + "\n";
-	send(client_socket, join_message.c_str(), join_message.size(), 0);
-	std::string user_join_message = ":" + user->get_nickname() + " JOIN " + channel_name + "\n";
-	_channels[channel_name]->sendMessage(user_join_message, client_socket);
+	if (!key.empty() && _channels[channel_name]->get_password().empty()) //Si le channel n'a pas de pass et que le client en a mis un, faux
+	{
+		send(client_socket, "No key set on the channel yet !\n", strlen("No key set on the channel yet !\n"), 0);
+		return (false);
+	}
+	else
+	{
+		if (!(_channels[channel_name]->get_password().empty())) //Check si channel password
+		{
+			if (key.empty() || key != _channels[channel_name]->get_password()) //Check pass donne par le client
+			{
+				send(client_socket, "Wrong channel password !\n", strlen("Wrong channel password !\n"), 0);
+				return (false);
+			}
+		}
+		if (_channels[channel_name]->hasUser(_clients[client_socket])) //Check si le client est deja sur le channel
+		{
+            send(client_socket, "You are already in the channel !\n", strlen("You are already in the channel !\n"), 0);
+            return (true);
+        }
+		_channels[channel_name]->addUser(_clients[client_socket]); //Sinon add le nouvel user et en averti les autres sur le channel
+    	std::string user_join_message = ":" + _clients[client_socket]->get_nickname() + " JOIN " + channel_name + "\n";
+    	_channels[channel_name]->sendMessage(user_join_message, client_socket);
+	}
 	return (true);
 }
 

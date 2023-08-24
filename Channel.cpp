@@ -17,14 +17,10 @@ Channel::Channel(Channel const& source) { (void)source; }
 Channel& Channel::operator=(Channel const& source) { (void)source; return (*this); }
 ////////////////////////////////////////////////////////////////////////////////
 
-Channel::Channel(const std::string& name) :
-_name(name), _topic_state(false), _invite_state(false), _password_state(false)
+Channel::Channel(const std::string& name, User *user) :
+_name(name), _invite_state(false)
 {
-	//add dans reg_moderators
-	(void)_name;//delete
-	(void)_topic_state;//delete
-	(void)_invite_state;//delete
-	(void)_password_state;//delete
+	addOpe(user);
 	std::cout << "New channel \"" << _name << "\" is created" << std::endl;
 }
 
@@ -35,9 +31,27 @@ Channel::~Channel()
 
 void Channel::addUser(User *user)
 {
-	//add dans reg_user
-	(void)user;//delete
-	// _reg_users[user.getUsername()] = moderator;
+	_reg_users.push_back(user);
+}
+
+void Channel::addOpe(User *user)
+{
+	_reg_ope.push_back(user);
+}
+
+bool Channel::hasUser(User* user) const
+{
+    for (size_t i = 0; i < _reg_users.size(); ++i)
+    {
+        if (_reg_users[i] == user)
+            return true;
+    }
+    for (size_t i = 0; i < _reg_ope.size(); ++i)
+    {
+        if (_reg_ope[i] == user)
+            return true;
+    }
+    return false;
 }
 
 void Channel::sendMessage(const std::string& message, type_sock sender_socket)
@@ -48,7 +62,19 @@ void Channel::sendMessage(const std::string& message, type_sock sender_socket)
 		if (user->get_userSocket() != sender_socket)
 			send(user->get_userSocket(), message.c_str(), message.size(), 0);
 	}
+    for (size_t i = 0; i < _reg_ope.size(); ++i)
+	{
+		User* user = _reg_ope[i];
+		if (user->get_userSocket() != sender_socket)
+			send(user->get_userSocket(), message.c_str(), message.size(), 0);
+	}
 }
+
+std::string Channel::get_password() const
+{
+	return (_password);
+}
+
 // void Channel::removeUser(const User& user)
 // {
 //	 (void)user;//delete
