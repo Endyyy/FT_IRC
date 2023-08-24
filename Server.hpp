@@ -70,6 +70,7 @@ class Server
 		void	cmdMode(std::string arg, type_sock client_socket);
 		void	cmdPrivMsg(std::string arg, type_sock client_socket);
 		void	checkCommand(std::string arg, type_sock client_socket);
+		int		findSocketFromNickname(std::string target);
 
 		//ERROR_MSGS
 

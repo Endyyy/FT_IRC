@@ -20,7 +20,6 @@ class Channel
 		std::string	_name;
 		std::string	_topic;
 		std::string	_password;
-		bool		_invite_state;
 		std::vector<User*>	_reg_users;
 		std::vector<User*>	_reg_ope;
 		Channel();
