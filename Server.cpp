@@ -241,8 +241,6 @@ void	Server::run()
 					else//////////////////test
 						std::cout << "WTF is going on !" << std::endl;
 					disconnectedClients.push_back(socket);
-					// erase_one_user(socket);
-					// std::cout << "user erased" << std::endl;
 				}
 			}
 		}
