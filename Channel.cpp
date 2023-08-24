@@ -75,19 +75,33 @@ std::string Channel::get_password() const
 	return (_password);
 }
 
+std::string Channel::get_topic() const
+{
+	return (_topic);
+}
+
 // void Channel::removeUser(const User& user)
 // {
 //	 (void)user;//delete
 //	 // _reg_users.erase(user.getUsername());
 // }
 
-// int Channel::getUserPrivilege(const User& user) const
-// {
-//	 (void)user;//delete
-//	 std::map<std::string, User&>::const_iterator it = _reg_users.find(user.get_username());
-//	 if (it != _reg_users.end())
-//	 {
-//		 return it->second.get_userSocket();
-//	 }
-//	 return -1;
-// }
+bool Channel::getUserPrivilege(User *user) const
+{
+	for (size_t i = 0; i < _reg_ope.size(); ++i)
+    {
+        if (_reg_ope[i] == user)
+            return true;
+    }
+    return false;
+}
+
+void	Channel::set_topic(std::string topic)
+{
+	_topic = topic;
+}
+
+void	Channel::clear_topic()
+{
+	_topic.clear();
+}

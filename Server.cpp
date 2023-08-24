@@ -460,8 +460,65 @@ void Server::cmdInvite(std::string arg, int client_socket)
 
 void Server::cmdTopic(std::string arg, int client_socket)
 {
-	(void)arg;
-	(void)client_socket;
+	std::stringstream	stream(arg);
+	std::string			cmd;
+	std::string			channel_name;
+	std::string			topic;
+
+	if (!(stream >> cmd) || cmd != "TOPIC") 	//Check nom de la commande
+		return ;
+	if (!(stream >> channel_name)) 			//Check nom du channel
+		return ;
+	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
+		return ;
+	if (stream)												//Recupere potentiel 3eme argument
+	{
+		stream >> std::ws;
+		std::getline(stream, topic);
+	}
+	if (_channels.find(channel_name) == _channels.end())
+	{
+		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+		return ;
+	}
+	if (!(_channels[channel_name]->hasUser(_clients[client_socket])))
+	{
+		send(client_socket, "You're not registered in the channel !\n", strlen("You're not registered in the channel !\n"), 0);
+		return ;
+	}
+	if (topic.empty())
+	{
+		if (_channels[channel_name]->get_topic().empty())
+		{
+			send(client_socket, "There is no active topic on this channel !\n", strlen("There is no active topic on this channel !\n"), 0);
+			return ;
+		}
+		std::string topic_message = "TOPIC " + channel_name + "  " + _channels[channel_name]->get_topic() + "\n";
+		send(client_socket, topic_message.c_str(), topic_message.size(), 0);
+	}
+	else
+	{
+		if (topic[0] != ':')
+		{
+			send(client_socket, "TOPIC <#channel_name> :<topic>\n", strlen("TOPIC <#channel_name> :<topic>\n"), 0);
+			return ;
+		}
+		if (topic.size() == 1 && _channels[channel_name]->getUserPrivilege(_clients[client_socket]))
+		{
+			_channels[channel_name]->clear_topic();
+			return ;
+		}
+		if (_channels[channel_name]->getUserPrivilege(_clients[client_socket]))
+		{
+			_channels[channel_name]->set_topic(topic);
+			std::string new_topic_message = "TOPIC " + channel_name + "  " + _channels[channel_name]->get_topic() + "\n";
+    		_channels[channel_name]->sendMessage(new_topic_message, client_socket);
+			return ;
+		}
+		else
+			send(client_socket, "You don't have the right to change topic on this channel !\n", \
+			strlen("You don't have the right to change topic on this channel !\n"), 0);
+	}
 }
 
 void Server::cmdMode(std::string arg, int client_socket)
@@ -470,36 +527,46 @@ void Server::cmdMode(std::string arg, int client_socket)
 	(void)client_socket;
 }
 
-bool Server::cmdJoin(std::string arg, int client_socket) //potentiellement passe en void
+void Server::cmdJoin(std::string arg, int client_socket) //potentiellement passe en void
 {
 	std::stringstream	stream(arg);
 	std::string			cmd;
 	std::string			channel_name;
 	std::string			key;
+	std::string			end;
 
 	if (!(stream >> cmd) || cmd != "JOIN") 	//Check nom de la commande
-		return (false);
+		return ;
 	if (!(stream >> channel_name)) 			//Check nom du channel
-		return (false);
+		return ;
 	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
-			return (false);
+		return ;
 	if (stream)												//Recupere potentiel 3eme argument
 		stream >> key;
+	if (stream)
+	{
+		stream >> end;
+		if (!end.empty())
+		{
+			send(client_socket, "JOIN <#channel_name> <key>\n", strlen("JOIN <#channel_name> <key>\n"), 0);
+			return ;
+		}
+	}
 	if (_channels.find(channel_name) == _channels.end())  //Check si channel existe
 	{
 		if (!key.empty())								//Si channel n'existe pas et que le client a mis un pass, faux
 		{
 			send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
-			return (false);
+			return ;
 		}
 		_channels[channel_name] = new Channel(channel_name, _clients[client_socket]);  //Sinon cree channel
 		send(client_socket, "New channel created !\n", strlen("New channel created !\n"), 0);
-		return (true);
+		return ;
 	}
 	if (!key.empty() && _channels[channel_name]->get_password().empty()) //Si le channel n'a pas de pass et que le client en a mis un, faux
 	{
 		send(client_socket, "No key set on the channel yet !\n", strlen("No key set on the channel yet !\n"), 0);
-		return (false);
+		return ;
 	}
 	else
 	{
@@ -508,19 +575,18 @@ bool Server::cmdJoin(std::string arg, int client_socket) //potentiellement passe
 			if (key.empty() || key != _channels[channel_name]->get_password()) //Check pass donne par le client
 			{
 				send(client_socket, "Wrong channel password !\n", strlen("Wrong channel password !\n"), 0);
-				return (false);
+				return ;
 			}
 		}
 		if (_channels[channel_name]->hasUser(_clients[client_socket])) //Check si le client est deja sur le channel
 		{
             send(client_socket, "You are already in the channel !\n", strlen("You are already in the channel !\n"), 0);
-            return (true);
+            return ;
         }
 		_channels[channel_name]->addUser(_clients[client_socket]); //Sinon add le nouvel user et en averti les autres sur le channel
     	std::string user_join_message = ":" + _clients[client_socket]->get_nickname() + " JOIN " + channel_name + "\n";
     	_channels[channel_name]->sendMessage(user_join_message, client_socket);
 	}
-	return (true);
 }
 
 void Server::cmdPrivMsg(std::string arg, int client_socket)

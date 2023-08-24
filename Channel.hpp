@@ -32,12 +32,17 @@ class Channel
 		~Channel();
 
 		std::string get_password() const;
+		std::string get_topic() const;
+
+		void	set_topic(std::string topic);
+		void	clear_topic();
+
 		bool	hasUser(User* user) const;
+		bool	getUserPrivilege(User *user) const;
 		void	addUser(User *user);
 		void	addOpe(User *user);
 		void	removeUser(User *user);
-		int		getUserPrivilege(User *user) const;
-		void sendMessage(const std::string& message, type_sock sender_socket);
+		void	sendMessage(const std::string& message, type_sock sender_socket);
 
 };
 
