@@ -14,15 +14,15 @@ _port(port), _serverPassword(serverPassword), _serverSocket(socket(AF_INET, SOCK
 {
 	if (_serverSocket == -1)
 		throw (ERR_INVALIDSOCKET());
-	// Channel* default_Channel = new Channel("#general");// d'apres mes infos, un channel ne peut etre créé qu'à la demande d'un user. d'ailleurs, qui en serait le modo?
-	// _channels["#general"] = default_Channel;
+
 	set_address();
-	// std::cout << "show value : port " << _port << "; _serverSocket " << _serverSocket << std::endl;//test
 	std::cout << "Server created" << std::endl;
 }
 
 Server::~Server()
 {
+	// erase_one_channel(std::string channel_name);
+	erase_all_channels();
 	erase_all_users();
 	std::cout << "All users are deleted" << std::endl;
 	std::cout << "Server destroyed" << std::endl;
@@ -123,13 +123,36 @@ void	Server::erase_all_users()
 		_death_note.push_back(it->first);
 
 	erase_death_note();
-	// for (std::vector<type_sock>::iterator it = _death_note.begin(); it != _death_note.end(); it = _death_note.begin())
-	// {
-	// 	erase_one_user(*it);
-	// 	std::cout << "user erased from map" << std::endl;
-	// 	_death_note.erase(it);
-	// 	std::cout << "user erased from death note" << std::endl;
-	// }
+}
+
+void	Server::erase_one_channel(std::string channel_name)
+{
+	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
+	if (it != _channels.end())
+	{
+		delete it->second;
+		it->second = NULL;
+		_channels.erase(it);
+	}
+}
+
+void	Server::erase_all_channels()
+{
+	for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); it++)
+		_closing_list.push_back(it->first);
+
+	erase_closing_list();
+}
+
+void	Server::erase_closing_list()
+{
+	for (std::vector<std::string>::iterator it = _closing_list.begin(); it != _closing_list.end(); it = _closing_list.begin())
+	{
+		erase_one_channel(*it);
+		std::cout << "channel erased from map" << std::endl;
+		_closing_list.erase(it);
+		std::cout << "channel erased from vector" << std::endl;
+	}
 }
 
 std::string	Server::recv_from_user(type_sock userSocket)

@@ -37,6 +37,7 @@ class Server
 		std::map<type_sock, User*>		_clients;
 		std::map<std::string, Channel*>	_channels;
 		std::vector<type_sock>			_death_note;
+		std::vector<std::string>		_closing_list;
 
 		Server();
 		Server(Server const& source);
@@ -63,6 +64,9 @@ class Server
 		void			erase_all_users();
 		void			set_address();
 		void			ask_for_login_credentials(std::string arg, type_sock client_socket, int lvl);
+		void			erase_one_channel(std::string channel_name);
+		void			erase_all_channels();
+		void			erase_closing_list();
 		static void		ctrlC_behaviour(int signal);
 
 
