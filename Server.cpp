@@ -1,5 +1,7 @@
 #include "Server.hpp"
 
+bool Server::_active = true;
+
 ////////////////////////////////////////////////////////////////////////////////
 //  Forbidden :
 Server::Server() : _port(), _serverPassword(), _serverSocket() {}
@@ -71,8 +73,10 @@ void	Server::reset_fd_set()
 void	Server::waiting_for_activity()
 {
 	//gestion des signaux
+	std::cout << "before select" << std::endl;
 	int activity = select(_topSocket + 1, &_readfds, NULL, NULL, NULL);
-	if (activity < 0)
+	std::cout << "after select" << std::endl;
+	if (_active && activity < 0)
 		throw (ERR_SELECTFAILURE());
 }
 
@@ -115,17 +119,17 @@ void	Server::erase_one_user(type_sock userSocket)
 
 void	Server::erase_all_users()
 {
-	std::vector<type_sock> death_note;
 	for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); it++)
-		death_note.push_back(it->first);
+		_death_note.push_back(it->first);
 
-	for (std::vector<type_sock>::iterator it = death_note.begin(); it != death_note.end(); it = death_note.begin())
-	{
-		erase_one_user(*it);
-		std::cout << "user erased from map" << std::endl;
-		death_note.erase(it);
-		std::cout << "user erased from death note" << std::endl;
-	}
+	erase_death_note();
+	// for (std::vector<type_sock>::iterator it = _death_note.begin(); it != _death_note.end(); it = _death_note.begin())
+	// {
+	// 	erase_one_user(*it);
+	// 	std::cout << "user erased from map" << std::endl;
+	// 	_death_note.erase(it);
+	// 	std::cout << "user erased from death note" << std::endl;
+	// }
 }
 
 std::string	Server::recv_from_user(type_sock userSocket)
@@ -174,10 +178,31 @@ std::string Server::get_clientDatas(type_sock socket)
 	return (str);
 }
 
+void	Server::ctrlC_behaviour(int signal)
+{
+	(void)signal;
+	_active = false;
+	std::cout << "CTRL C SUCCESS" << std::endl;
+}
+
+void	Server::erase_death_note()
+{
+	for (std::vector<type_sock>::iterator it = _death_note.begin(); it != _death_note.end(); it = _death_note.begin())
+	{
+		erase_one_user(*it);
+		std::cout << "user erased from map" << std::endl;
+		_death_note.erase(it);
+		std::cout << "user erased from vector" << std::endl;
+	}
+}
+
 void	Server::run()
 {
 	type_sock socket = 0;
-	while (true)
+
+	signal(SIGINT, ctrlC_behaviour);
+
+	while (_active)
 	{
 		std::cout << std::endl << "while" << std::endl;
 
@@ -190,69 +215,76 @@ void	Server::run()
 		std::cout << "waiting is over" << std::endl;
 
 		// New incoming connection
-		if (check_activity(_serverSocket))
+		if (_active && check_activity(_serverSocket))
 		{
 			std::cout << "activity checked" << std::endl;
 
 			socket = get_incoming_socket();
 			std::cout << "socket identified" << std::endl;
 
-			if (_clients.find(socket) == _clients.end())
+			if (_active && _clients.find(socket) == _clients.end())
 			{
 				std::cout << "user not find in map" << std::endl;
 
 				add_new_user(socket);
 				std::cout << "new user added" << std::endl;
 
-				if (_clients[socket]->get_userState() == 0)
+				if (_active && _clients[socket]->get_userState() == 0)
 					send(socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
-				else if (_clients[socket]->get_userState() == 1)////////////////////////////utile?
-					send(socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
-				else if (_clients[socket]->get_userState() == 2)
-					send(socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+				// else if (_active && _clients[socket]->get_userState() == 1)////////////////////////////utile?
+				// 	send(socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
+				// else if (_active && _clients[socket]->get_userState() == 2)
+				// 	send(socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
 			}
 		}
 
 		// Handle input from clients
-		std::vector<type_sock> disconnectedClients;
 
-		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); it++)
+		for (std::map<type_sock, User*>::iterator it = _clients.begin(); _active && it != _clients.end(); it++)
 		{
 			std::cout << "for" << std::endl;
 			socket = it->first;
-			if (check_activity(it->second->get_userSocket()))
+			if (_active && check_activity(it->second->get_userSocket()))
 			{
 				std::cout << "activity checked" << std::endl;
 				try
 				{
-					std::string	input = recv_from_user(socket);
-					std::cout << "input correctly recieved" << std::endl;
+					if (_active)
+					{
+						std::string	input = recv_from_user(socket);
+						std::cout << "input correctly recieved" << std::endl;
 
-					checkCommand(input, socket);
-					std::cout << "command checked" << std::endl;
+						checkCommand(input, socket);
+						std::cout << "command checked" << std::endl;
+					}
 				}
 				catch(std::exception const& e)
 				{
-					std::string str = e.what();
-					if (str == "client disconnected")
-						std::cout << "Client disconnected. Info : " << get_clientDatas(socket) << std::endl;
-					else if (str == "recv error")
-						std::cout << "Lost connection with client. Info : " << get_clientDatas(socket) << std::endl;
-					else//////////////////test
-						std::cout << "WTF is going on !" << std::endl;
-					disconnectedClients.push_back(socket);
+					if (_active)
+					{
+						std::string str = e.what();
+						if (str == "client disconnected")
+							std::cout << "Client disconnected. Info : " << get_clientDatas(socket) << std::endl;
+						else if (str == "recv error")
+							std::cout << "Lost connection with client. Info : " << get_clientDatas(socket) << std::endl;
+						else//////////////////test
+							std::cout << "WTF is going on !" << std::endl;//to delete before push
+						_death_note.push_back(socket);
+					}
 				}
 			}
 		}
 
+		if (_active)
+			erase_death_note();
 		// Fonction qui permet de clean les clients deco, ne pas changer la syntaxe ou segfault :D ////////challenge accepted ;)
-		for (std::vector<type_sock>::iterator it = disconnectedClients.begin(); it != disconnectedClients.end(); it = disconnectedClients.begin())
-		{
-			erase_one_user(*it);
-			std::cout << "user erased from map" << std::endl;
-			disconnectedClients.erase(it);
-			std::cout << "user erased from vector" << std::endl;
-		}
+		// for (std::vector<type_sock>::iterator it = _death_note.begin(); it != _death_note.end(); it = _death_note.begin())
+		// {
+		// 	erase_one_user(*it);
+		// 	std::cout << "user erased from map" << std::endl;
+		// 	_death_note.erase(it);
+		// 	std::cout << "user erased from vector" << std::endl;
+		// }
 	}
 }
 

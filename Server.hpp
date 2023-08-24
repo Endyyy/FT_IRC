@@ -10,6 +10,7 @@
 # include <string>
 # include <cstdlib>
 # include <cstdio>
+# include <csignal>
 # include <unistd.h>
 # include <vector>
 # include <map>
@@ -26,6 +27,7 @@ class Server
 {
 	private:
 		int const			_port;
+		static bool			_active;
 		std::string const	_serverPassword;
 		type_sock const		_serverSocket;
 		sockaddr_in			_address;
@@ -34,6 +36,8 @@ class Server
 
 		std::map<type_sock, User*>		_clients;
 		std::map<std::string, Channel*>	_channels;
+		std::vector<type_sock>			_death_note;
+
 		Server();
 		Server(Server const& source);
 		Server&	operator=(Server const& source);
@@ -46,18 +50,20 @@ class Server
 		void	start_listening();
 		void	run();
 
-		void		reset_fd_set();
-		void		waiting_for_activity();
-		bool		check_activity(type_sock socket);
-		void		complete_registration();
-		type_sock	get_incoming_socket();
-		void		add_new_user(type_sock userSocket);
-		std::string	recv_from_user(type_sock userSocket);
-		std::string get_clientDatas(type_sock socket);
-		void		erase_one_user(type_sock userSocket);
-		void		erase_all_users();
-		void		set_address();
-		void		ask_for_login_credentials(std::string arg, type_sock client_socket, int lvl);
+		void			reset_fd_set();
+		void			waiting_for_activity();
+		bool			check_activity(type_sock socket);
+		void			complete_registration();
+		type_sock		get_incoming_socket();
+		void			add_new_user(type_sock userSocket);
+		std::string		recv_from_user(type_sock userSocket);
+		std::string 	get_clientDatas(type_sock socket);
+		void			erase_one_user(type_sock userSocket);
+		void			erase_death_note();
+		void			erase_all_users();
+		void			set_address();
+		void			ask_for_login_credentials(std::string arg, type_sock client_socket, int lvl);
+		static void		ctrlC_behaviour(int signal);
 
 
 		bool	cmdPass(std::string arg);
@@ -78,14 +84,6 @@ class Server
 		class ERR_LISTENINGFAILURE :	public std::exception { virtual const char* what() const throw(); };
 		class ERR_SELECTFAILURE :		public std::exception { virtual const char* what() const throw(); };
 		class ERR_ACCEPTFAILURE :		public std::exception { virtual const char* what() const throw(); };
-
-		// "Error reading password from client."class ERR_CANNOTREADPWD :		public std::exception { virtual const char* what() const throw(); };
-		// "Client authentication failed. Connection rejected."class ERR_WRONGPASSWORD :		public std::exception { virtual const char* what() const throw(); };
-		// "Error reading nickname from client."class ERR_CANNOTREADNICKNAME :	public std::exception { virtual const char* what() const throw(); };
-		// "Error reading username from client."class ERR_CANNOTREADUSERNAME :	public std::exception { virtual const char* what() const throw(); };
-		// class ERR_CLIENTDISCONNECTED :		public std::exception { virtual const char* what() const throw(); };
-		// class ERR_ :		public std::exception { virtual const char* what() const throw(); };
-
 
 		class ERR_ALREADYREGISTRED :	public std::exception { virtual const char* what() const throw(); };
 		class ERR_BADCHANMASK :			public std::exception { virtual const char* what() const throw(); };
