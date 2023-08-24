@@ -410,10 +410,11 @@ bool Server::cmdNick(std::string arg, int client_socket)
 
 	std::cout << "cmdNick" << std::endl;
 
-	if (!(stream >> cmd) || cmd != "NICK") {
+	if (!(stream >> cmd) || cmd != "NICK")
 		return (false);
-	}
-	if (!(stream >> nick_name)) {
+	if (!(stream >> nick_name))
+	{
+		send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
 		return (false);
 	}
 	if (stream)
@@ -478,10 +479,79 @@ bool Server::cmdUser(std::string arg, int client_socket)
 	return (true);
 }
 
+int	Server::findSocketFromNickname(std::string target)
+{
+	int targetSocket = -1;
+	for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+    	User* user = it->second;
+		if (user->get_nickname() == target)
+			targetSocket = user->get_userSocket();
+	}
+	return (targetSocket);
+}
+
 void Server::cmdKick(std::string arg, int client_socket)
 {
-	(void)arg;
-	(void)client_socket;
+	std::stringstream	stream(arg);
+	std::string			cmd;
+	std::string			channel_name;
+	std::string			banned_user;
+	std::string			ban_msg;
+
+	if (!(stream >> cmd) || cmd != "KICK")
+		return ;
+	if (!(stream >> channel_name))
+	{
+		send(client_socket, "KICK <#channel_name> <user> [<comment>]\n", strlen("KICK <#channel_name> <user> [<comment>]\n"), 0);
+		return ;
+	}
+	if (channel_name[0] != '#' || channel_name.size() == 1)
+	{
+		send(client_socket, "KICK <#channel_name> <user> [<comment>]\n", strlen("KICK <#channel_name> <user> [<comment>]\n"), 0);
+		return ;
+	}
+	if (!(stream >> banned_user))
+	{
+		send(client_socket, "KICK <#channel_name> <user> [<comment>]\n", strlen("KICK <#channel_name> <user> [<comment>]\n"), 0);
+		return ;
+	}
+	if (stream)
+	{
+		stream >> std::ws;
+		std::getline(stream, ban_msg);
+	}
+	if (_channels.find(channel_name) == _channels.end())
+	{
+		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+		return ;
+	}
+	int targetSocket = findSocketFromNickname(banned_user);
+	if (targetSocket == -1)
+	{
+		send(client_socket, "Target does not exist !\n", strlen("Target does not exist !\n"), 0);
+		return ;
+	}
+	if (!(_channels[channel_name]->hasUser(_clients[targetSocket])))
+	{
+		send(client_socket, "The target is not registered in the channel !\n", strlen("The target is not registered in the channel !\n"), 0);
+		return ;
+	}
+	_channels[channel_name]->removeUser(_clients[targetSocket]);
+	if (!ban_msg.empty())
+	{
+		std::string ban_message_plus = channel_name + " :You were kicked by " + _clients[client_socket]->get_nickname() + " (" + ban_msg + ")\n";
+		send(targetSocket, ban_message_plus.c_str(), ban_message_plus.size(), 0);
+		std::string ban_chan_message_plus = channel_name + " :" + _clients[targetSocket]->get_nickname() + " was kicked by " + _clients[client_socket]->get_nickname() + " (" + ban_msg + ")\n";
+    	_channels[channel_name]->sendMessage(ban_chan_message_plus, client_socket);
+	}
+	else
+	{
+		std::string ban_message = channel_name + " :You were kicked by " + _clients[client_socket]->get_nickname() + "\n";
+		send(targetSocket, ban_message.c_str(), ban_message.size(), 0);
+		std::string ban_chan_message = channel_name + " :" + _clients[targetSocket]->get_nickname() + " was kicked by " + _clients[client_socket]->get_nickname() + "\n";
+    	_channels[channel_name]->sendMessage(ban_chan_message, client_socket);
+	}
 }
 
 void Server::cmdInvite(std::string arg, int client_socket)
@@ -499,10 +569,16 @@ void Server::cmdTopic(std::string arg, int client_socket)
 
 	if (!(stream >> cmd) || cmd != "TOPIC") 	//Check nom de la commande
 		return ;
-	if (!(stream >> channel_name)) 			//Check nom du channel
+	if (!(stream >> channel_name))
+	{
+		send(client_socket, "TOPIC <#channel_name> :<topic>\n", strlen("TOPIC <#channel_name> :<topic>\n"), 0);
 		return ;
-	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
+	}
+	if (channel_name[0] != '#' || channel_name.size() == 1)
+	{
+		send(client_socket, "TOPIC <#channel_name> :<topic>\n", strlen("TOPIC <#channel_name> :<topic>\n"), 0);
 		return ;
+	}
 	if (stream)												//Recupere potentiel 3eme argument
 	{
 		stream >> std::ws;
@@ -525,7 +601,7 @@ void Server::cmdTopic(std::string arg, int client_socket)
 			send(client_socket, "There is no active topic on this channel !\n", strlen("There is no active topic on this channel !\n"), 0);
 			return ;
 		}
-		std::string topic_message = "TOPIC " + channel_name + "  " + _channels[channel_name]->get_topic() + "\n";
+		std::string topic_message = "TOPIC " + channel_name + " " + _channels[channel_name]->get_topic() + "\n";
 		send(client_socket, topic_message.c_str(), topic_message.size(), 0);
 	}
 	else
@@ -543,7 +619,7 @@ void Server::cmdTopic(std::string arg, int client_socket)
 		if (_channels[channel_name]->getUserPrivilege(_clients[client_socket]))
 		{
 			_channels[channel_name]->set_topic(topic);
-			std::string new_topic_message = "TOPIC " + channel_name + "  " + _channels[channel_name]->get_topic() + "\n";
+			std::string new_topic_message = "TOPIC " + channel_name + " " + _channels[channel_name]->get_topic() + "\n";
     		_channels[channel_name]->sendMessage(new_topic_message, client_socket);
 			return ;
 		}
@@ -569,8 +645,11 @@ void Server::cmdJoin(std::string arg, int client_socket) //potentiellement passe
 
 	if (!(stream >> cmd) || cmd != "JOIN") 	//Check nom de la commande
 		return ;
-	if (!(stream >> channel_name)) 			//Check nom du channel
+	if (!(stream >> channel_name))
+	{
+		send(client_socket, "JOIN <#channel_name> <key>\n", strlen("JOIN <#channel_name> <key>\n"), 0);
 		return ;
+	}
 	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
 		return ;
 	if (stream)												//Recupere potentiel 3eme argument
@@ -623,10 +702,56 @@ void Server::cmdJoin(std::string arg, int client_socket) //potentiellement passe
 
 void Server::cmdPrivMsg(std::string arg, int client_socket)
 {
-	(void)arg;
-	(void)client_socket;
-}
+	std::stringstream	stream(arg);
+	std::string			cmd;
+	std::string			target;
+	std::string			message;
 
+	if (!(stream >> cmd) || cmd != "PRIVMSG") 	//Check nom de la commande
+		return ;
+	if (!(stream >> target))
+	{
+		send(client_socket, "PRIVMSG <target> :<message>\n", strlen("PRIVMSG <target> :<message>\n"), 0);
+		return ;
+	}
+	if (stream)												//Recupere potentiel 3eme argument
+	{
+		stream >> std::ws;
+		std::getline(stream, message);
+	}
+	if (message.empty() || message[0] != ':')
+	{
+		send(client_socket, "PRIVMSG <target> :<message>\n", strlen("PRIVMSG <target> :<message>\n"), 0);
+		return ;
+	}
+	if (target[0] == '#')
+	{
+		if (target.size() == 1 || _channels.find(target) == _channels.end())
+		{
+			send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+			return ;
+		}
+		if (!(_channels[target]->hasUser(_clients[client_socket])))
+		{
+			send(client_socket, "You're not registered in the channel !\n", strlen("You're not registered in the channel !\n"), 0);
+			return ;
+		}
+		std::string priv_message_chan = target + " <" + _clients[client_socket]->get_nickname() + "> " + message + "\n";
+		_channels[target]->sendMessage(priv_message_chan, client_socket);
+	}
+	else
+	{
+		std::string priv_message = "<" + _clients[client_socket]->get_nickname() + "> " + message + "\n";
+		int targetSocket = findSocketFromNickname(target);
+		if (targetSocket == -1)
+		{
+			send(client_socket, "Target does not exist !\n", strlen("Target does not exist !\n"), 0);
+			return ;
+		}
+		send(targetSocket, priv_message.c_str(), priv_message.size(), 0);
+	}
+
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ERROR_MSGS

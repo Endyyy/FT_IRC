@@ -18,7 +18,7 @@ Channel& Channel::operator=(Channel const& source) { (void)source; return (*this
 ////////////////////////////////////////////////////////////////////////////////
 
 Channel::Channel(const std::string& name, User *user) :
-_name(name), _invite_state(false)
+_name(name)
 {
 	addOpe(user);
 	std::cout << "New channel \"" << _name << "\" is created" << std::endl;
@@ -80,11 +80,19 @@ std::string Channel::get_topic() const
 	return (_topic);
 }
 
-// void Channel::removeUser(const User& user)
-// {
-//	 (void)user;//delete
-//	 // _reg_users.erase(user.getUsername());
-// }
+void Channel::removeUser(User *user)
+{
+	for (size_t i = 0; i < _reg_users.size(); ++i)
+    {
+        if (_reg_users[i] == user)
+           _reg_users.erase(_reg_users.begin() + i);
+    }
+    for (size_t i = 0; i < _reg_ope.size(); ++i)
+    {
+        if (_reg_ope[i] == user)
+           _reg_ope.erase(_reg_ope.begin() + i);
+    }
+}
 
 bool Channel::getUserPrivilege(User *user) const
 {
