@@ -378,10 +378,11 @@ bool Server::cmdNick(std::string arg, int client_socket)
 
 	std::cout << "cmdNick" << std::endl;
 
-	if (!(stream >> cmd) || cmd != "NICK") {
+	if (!(stream >> cmd) || cmd != "NICK")
 		return (false);
-	}
-	if (!(stream >> nick_name)) {
+	if (!(stream >> nick_name))
+	{
+		send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
 		return (false);
 	}
 	if (stream)
@@ -467,8 +468,11 @@ void Server::cmdTopic(std::string arg, int client_socket)
 
 	if (!(stream >> cmd) || cmd != "TOPIC") 	//Check nom de la commande
 		return ;
-	if (!(stream >> channel_name)) 			//Check nom du channel
+	if (!(stream >> channel_name))
+	{
+		send(client_socket, "TOPIC <#channel_name> :<topic>\n", strlen("TOPIC <#channel_name> :<topic>\n"), 0);
 		return ;
+	}
 	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
 		return ;
 	if (stream)												//Recupere potentiel 3eme argument
@@ -493,7 +497,7 @@ void Server::cmdTopic(std::string arg, int client_socket)
 			send(client_socket, "There is no active topic on this channel !\n", strlen("There is no active topic on this channel !\n"), 0);
 			return ;
 		}
-		std::string topic_message = "TOPIC " + channel_name + "  " + _channels[channel_name]->get_topic() + "\n";
+		std::string topic_message = "TOPIC " + channel_name + " " + _channels[channel_name]->get_topic() + "\n";
 		send(client_socket, topic_message.c_str(), topic_message.size(), 0);
 	}
 	else
@@ -511,7 +515,7 @@ void Server::cmdTopic(std::string arg, int client_socket)
 		if (_channels[channel_name]->getUserPrivilege(_clients[client_socket]))
 		{
 			_channels[channel_name]->set_topic(topic);
-			std::string new_topic_message = "TOPIC " + channel_name + "  " + _channels[channel_name]->get_topic() + "\n";
+			std::string new_topic_message = "TOPIC " + channel_name + " " + _channels[channel_name]->get_topic() + "\n";
     		_channels[channel_name]->sendMessage(new_topic_message, client_socket);
 			return ;
 		}
@@ -537,8 +541,11 @@ void Server::cmdJoin(std::string arg, int client_socket) //potentiellement passe
 
 	if (!(stream >> cmd) || cmd != "JOIN") 	//Check nom de la commande
 		return ;
-	if (!(stream >> channel_name)) 			//Check nom du channel
+	if (!(stream >> channel_name))
+	{
+		send(client_socket, "JOIN <#channel_name> <key>\n", strlen("JOIN <#channel_name> <key>\n"), 0);
 		return ;
+	}
 	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
 		return ;
 	if (stream)												//Recupere potentiel 3eme argument
@@ -591,10 +598,57 @@ void Server::cmdJoin(std::string arg, int client_socket) //potentiellement passe
 
 void Server::cmdPrivMsg(std::string arg, int client_socket)
 {
-	(void)arg;
-	(void)client_socket;
-}
+	std::stringstream	stream(arg);
+	std::string			cmd;
+	std::string			target;
+	std::string			message;
 
+	if (!(stream >> cmd) || cmd != "PRIVMSG") 	//Check nom de la commande
+		return ;
+	if (!(stream >> target))
+	{
+		send(client_socket, "PRIVMSG <target> :<message>\n", strlen("PRIVMSG <target> :<message>\n"), 0);
+		return ;
+	}
+	if (stream)												//Recupere potentiel 3eme argument
+	{
+		stream >> std::ws;
+		std::getline(stream, message);
+	}
+	if (message.empty() || message[0] != ':')
+	{
+		send(client_socket, "PRIVMSG <target> :<message>\n", strlen("PRIVMSG <target> :<message>\n"), 0);
+		return ;
+	}
+	if (target[0] == '#')
+	{
+		if (target.size() == 1 || _channels.find(target) == _channels.end())
+		{
+			send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+			return ;
+		}
+		if (!(_channels[target]->hasUser(_clients[client_socket])))
+		{
+			send(client_socket, "You're not registered in the channel !\n", strlen("You're not registered in the channel !\n"), 0);
+			return ;
+		}
+		std::string priv_message_chan = target + " <" + _clients[client_socket]->get_nickname() + "> " + message + "\n";
+		_channels[target]->sendMessage(priv_message_chan, client_socket);
+	}
+	else
+	{
+		std::string priv_message = "<" + _clients[client_socket]->get_nickname() + "> " + message + "\n";
+		int targetSocket;
+		for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		{
+    		User* user = it->second;
+			if (user->get_nickname() == target)
+				targetSocket = user->get_userSocket();
+		}
+		send(targetSocket, priv_message.c_str(), priv_message.size(), 0);
+	}
+
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ERROR_MSGS
