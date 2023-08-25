@@ -424,7 +424,7 @@ bool Server::cmdPass(std::string arg)
 	{
 		std::cout << "stream" << std::endl;
 		stream >> end;
-		if (end[0])
+		if (!end.empty())
 			return (false);
 	}
 	if (passwd == _serverPassword)
@@ -452,12 +452,12 @@ bool Server::cmdNick(std::string arg, int client_socket)
 	if (stream)
 	{
 		stream >> end;
-		if (end[0])
+		if (!end.empty())
 			return (false);
 	}
 
 	// availability test
-	for (std::map<int, User*>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)////////c'est pas plutot le username qui doit etre unique ?
+	for (std::map<int, User*>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		User* user = it->second;
 		if (user->get_nickname() == nickname && nickname[0] != '\n')
@@ -499,7 +499,7 @@ bool Server::cmdUser(std::string arg, int client_socket)
 	if (stream)
 	{
 		stream >> end;
-		if (end[0] || username[0] != ':' || username.size() == 1)
+		if (!end.empty() || username[0] != ':' || username.size() == 1)
 			return (false);
 	}
 
@@ -516,15 +516,17 @@ bool Server::cmdUser(std::string arg, int client_socket)
 	return (true);
 }
 
-type_sock	Server::findSocketFromNickname(std::string target)/////////////voir si c'est pas username qui doit etre unique
+type_sock	Server::findSocketFromNickname(std::string target)
 {
 	type_sock targetSocket = -1;
 	for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
     	User* user = it->second;
 		if (user->get_nickname() == target)
+		{
 			targetSocket = user->get_userSocket();
-		return (targetSocket);/////////////////////////ajoutee pour pas iterer davantage si trouvee
+			break ;
+		}
 	}
 	return (targetSocket);
 }
