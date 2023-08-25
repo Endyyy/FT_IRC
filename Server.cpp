@@ -23,6 +23,7 @@ Server::~Server()
 {
 	erase_all_channels();
 	erase_all_users();
+	close(_serverSocket);
 	std::cout << "All users are deleted" << std::endl;
 	std::cout << "Server destroyed" << std::endl;
 }
@@ -689,8 +690,79 @@ void Server::cmdTopic(std::string arg, type_sock client_socket)
 
 void Server::cmdMode(std::string arg, type_sock client_socket)
 {
-	(void)arg;
-	(void)client_socket;
+	// (void)arg;
+	// (void)client_socket;
+	// MODE - Changer le mode du channel :
+	// — i : Définir/supprimer le canal sur invitation uniquement
+	// ft_irc Internet Relay Chat
+	// — t : Définir/supprimer les restrictions de la commande TOPIC pour les opé-
+	// rateurs de canaux
+	// — k : Définir/supprimer la clé du canal (mot de passe)
+	// — o : Donner/retirer le privilège de l’opérateur de canal
+	// — l : Définir/supprimer la limite d’utilisateurs pour le canal
+	std::stringstream	stream(arg);
+	std::string			cmd;
+	std::string			channel_name;
+	std::string			limit;
+	std::string			user;
+	std::string			ban_mask;
+	std::string			end;
+
+	if (!(stream >> cmd) || cmd != "MODE") 	//Check nom de la commande
+		return ;
+	if (!(stream >> channel_name))
+	{
+		send(client_socket, "MODE <channel> {[+|-]|o|i|t|k|l} [<limit>] [<user>] [<ban mask>]\n", strlen("JMODE <channel> {[+|-]|o|i|t|k|l} [<limit>] [<user>] [<ban mask>]\n"), 0);
+		return ;
+	}
+	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
+		return ;
+	if (stream)												//Recupere potentiel 3eme argument
+		stream >> limit;
+	// if (stream)
+	// {
+	// 	stream >> end;
+	// 	if (!end.empty())
+	// 	{
+	// 		send(client_socket, "JOIN <#channel_name> <limit>\n", strlen("JOIN <#channel_name> <limit>\n"), 0);
+	// 		return ;
+	// 	}
+	// }
+	// if (_channels.find(channel_name) == _channels.end())  //Check si channel existe
+	// {
+	// 	if (!limit.empty())								//Si channel n'existe pas et que le client a mis un pass, faux
+	// 	{
+	// 		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+	// 		return ;
+	// 	}
+	// 	_channels[channel_name] = new Channel(channel_name, _clients[client_socket]);  //Sinon cree channel
+	// 	send(client_socket, "New channel created !\n", strlen("New channel created !\n"), 0);
+	// 	return ;
+	// }
+	// if (!limit.empty() && _channels[channel_name]->get_password().empty()) //Si le channel n'a pas de pass et que le client en a mis un, faux
+	// {
+	// 	send(client_socket, "No limit set on the channel yet !\n", strlen("No limit set on the channel yet !\n"), 0);
+	// 	return ;
+	// }
+	// else
+	// {
+	// 	if (!(_channels[channel_name]->get_password().empty())) //Check si channel password
+	// 	{
+	// 		if (limit.empty() || limit != _channels[channel_name]->get_password()) //Check pass donne par le client
+	// 		{
+	// 			send(client_socket, "Wrong channel password !\n", strlen("Wrong channel password !\n"), 0);
+	// 			return ;
+	// 		}
+	// 	}
+	// 	if (_channels[channel_name]->hasUser(_clients[client_socket])) //Check si le client est deja sur le channel
+	// 	{
+    //         send(client_socket, "You are already in the channel !\n", strlen("You are already in the channel !\n"), 0);
+    //         return ;
+    //     }
+	// 	_channels[channel_name]->addUser(_clients[client_socket]); //Sinon add le nouvel user et en averti les autres sur le channel
+    // 	std::string user_join_message = ":" + _clients[client_socket]->get_nickname() + " JOIN " + channel_name + "\n";
+    // 	_channels[channel_name]->sendMessage(user_join_message, client_socket);
+	// }
 }
 
 void Server::cmdJoin(std::string arg, type_sock client_socket) //potentiellement passe en void

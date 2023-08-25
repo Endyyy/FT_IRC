@@ -1,8 +1,8 @@
 GREEN = /bin/echo -e "\x1b[1;3;32m$1\x1b[0m"
 
-CC = c++
+CXX = c++
 
-CFLAGS = -Wall -Werror -Wextra -std=c++98
+CXXFLAGS = -Wall -Werror -Wextra -std=c++98
 
 SRCS =  Server.cpp \
 		User.cpp \
@@ -13,14 +13,14 @@ SRCS =  Server.cpp \
 OBJ = $(SRCS:.cpp=.o)
 
 %.o : %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 NAME = ircserv
 
 all:		$(NAME)
 
 $(NAME):	$(OBJ)
-		$(CC) $(CFLAGS) $(OBJ) -o $@
+		$(CXX) $(CXXFLAGS) $(OBJ) -o $@
 		$(call GREEN,"Compilation success 😁")
 
 clean:
