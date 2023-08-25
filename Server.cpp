@@ -173,33 +173,36 @@ void	Server::erase_closing_list()
 	}
 }
 
-std::string	Server::recv_from_user(type_sock userSocket)
+bool	Server::recv_from_user(type_sock userSocket)
 {
-	std::string	str;
 	char		buffer[BUFFER_SIZE] = {0};
 	ssize_t bytes = recv(userSocket, buffer, BUFFER_SIZE, MSG_DONTWAIT);
 	std::cout << "input received. bytes = " << bytes << std::endl;
 
-	if (bytes > 0)
-	{
-		std::cout << "normal behaviour, bytes > 0" << std::endl;
-		str = buffer;
-		str = str.erase(str.size() - 1);
-		std::cout << "input cleaned" << std::endl;
-		return (str);
-	}
-	else if (bytes == 0)
-	{
-		std::cout << "except disconnection detected, bytes == 0" << std::endl;
-		throw (std::runtime_error("client disconnected"));
-	}
-	else
+	if (bytes < 0)
 	{
 		std::cout << "except Problem with recv, bytes == -1" << std::endl;
 		throw (std::runtime_error("recv error"));
 	}
-	std::cout << "no way it reaches this line. WTF" << std::endl;
-	return ("");
+	if (bytes == 0)
+	{
+		std::cout << "except disconnection detected, bytes == 0" << std::endl;
+		throw (std::runtime_error("client disconnected"));
+	}
+	if (bytes > 0)
+	{
+		std::cout << "normal behaviour, bytes > 0" << std::endl;
+		_clients[userSocket]->add_to_inputStack(buffer);
+		if (_clients[userSocket]->get_inputStack()[_clients[userSocket]->get_inputStack().size() - 1] == '\n')/////////condition la plus appropriee ?
+		{
+			_clients[userSocket]->set_inputStack(_clients[userSocket]->get_inputStack().erase(_clients[userSocket]->get_inputStack().size() - 1));
+			std::cout << "input cleaned" << std::endl;
+			return (true);
+		}
+		else
+			send(userSocket, "^D", strlen("^D"), 0);
+	}
+	return (false);
 }
 
 std::string Server::get_clientDatas(type_sock socket)
@@ -269,11 +272,16 @@ void	Server::run()
 				{
 					if (_active)
 					{
-						std::string	input = recv_from_user(socket);
-						std::cout << "input correctly recieved" << std::endl;
+						// std::string	input = recv_from_user(socket);
+						if (recv_from_user(socket))
+						{
+							std::string	input = _clients[socket]->get_inputStack();
+							std::cout << "input correctly recieved" << std::endl;
 
-						checkCommand(input, socket);
-						std::cout << "command checked" << std::endl;
+							checkCommand(input, socket);
+							std::cout << "command checked" << std::endl;
+							_clients[socket]->reset_inputStack();
+						}
 					}
 				}
 				catch(std::exception const& e)

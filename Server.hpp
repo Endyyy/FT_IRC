@@ -57,7 +57,7 @@ class Server
 		void			complete_registration();
 		type_sock		get_incoming_socket();
 		void			add_new_user(type_sock userSocket);
-		std::string		recv_from_user(type_sock userSocket);
+		bool			recv_from_user(type_sock userSocket);
 		std::string 	get_clientDatas(type_sock socket);
 		void			erase_one_user(type_sock userSocket);
 		void			erase_death_note();

@@ -37,6 +37,26 @@ void	User::set_nickname(std::string nickname)
 	_nickname = nickname;
 }
 
+void	User::reset_inputStack()
+{
+	set_inputStack("");
+}
+
+void	User::set_inputStack(std::string str)
+{
+	_inputStack = str;
+}
+
+void	User::add_to_inputStack(std::string str)
+{
+	set_inputStack(get_inputStack() + str);
+}
+
+std::string	User::get_inputStack() const
+{
+	return (_inputStack);
+}
+
 std::string User::get_nickname() const
 {
 	return (_nickname);
