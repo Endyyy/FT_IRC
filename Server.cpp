@@ -446,7 +446,6 @@ bool Server::cmdNick(std::string arg, int client_socket)
 		return (false);
 	if (!(stream >> nickname))
 	{
-		send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
 		return (false);
 	}
 	if (stream)
