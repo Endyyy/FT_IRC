@@ -75,6 +75,7 @@ class Server
 		bool	cmdUser(std::string arg, type_sock client_socket);
 		void	cmdJoin(std::string arg, type_sock client_socket);
 		void	cmdKick(std::string arg, type_sock client_socket);
+		void	cmdPart(std::string arg, type_sock client_socket);
 		void	cmdInvite(std::string arg, type_sock client_socket);
 		void	cmdTopic(std::string arg, type_sock client_socket);
 		void	cmdMode(std::string arg, type_sock client_socket);
