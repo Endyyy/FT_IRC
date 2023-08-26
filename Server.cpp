@@ -694,8 +694,7 @@ void Server::cmdPart(std::string arg, type_sock client_socket)
 	_channels[channel_name]->removeUser(_clients[client_socket]); /////////////Voir pour le remove channel
 	std::string leaving_message = ":" + _clients[client_socket]->get_nickname() + " has left " + channel_name + "\n";
     _channels[channel_name]->sendMessage(leaving_message, client_socket);
-
-
+	send(client_socket, "You left the channel !\n", strlen("You left the channel !\n"), 0);
 }
 
 void Server::cmdTopic(std::string arg, type_sock client_socket)
