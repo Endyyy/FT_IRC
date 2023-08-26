@@ -1,10 +1,5 @@
 #include "User.hpp"
 
-// attributes:
-// std::string _nickname;
-// std::string _username;
-// int const   _userSocket;
-
 ////////////////////////////////////////////////////////////////////////////////
 //  Forbidden :
 User::User() : _userSocket(0) {}

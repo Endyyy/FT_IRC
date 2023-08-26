@@ -1,15 +1,5 @@
 #include "Channel.hpp"
 
-// attributes:
-// std::string					_name;
-// std::string					_topic;
-// bool							_topic_state;
-// bool							_invite_state;
-// bool							_password_state;
-// std::string					 _password;
-// std::map<std::string, User&>	_reg_moderators;
-// std::map<std::string, User&>	_reg_users;
-
 ////////////////////////////////////////////////////////////////////////////////
 //  Forbidden :
 Channel::Channel() {}
