@@ -58,27 +58,26 @@ class Server
 		void		run();
 		static void	ctrlC_behaviour(int signal);
 		void		waiting_for_activity();
-		void		complete_registration();
 		type_sock	get_incoming_socket();
 		void		add_new_user(type_sock userSocket);
 		bool		recv_from_user(type_sock userSocket);
 		std::string get_clientDatas(type_sock socket);
 		void		ask_for_login_credentials(std::string arg, type_sock client_socket, int lvl);
-		void	checkCommand(std::string arg, type_sock client_socket);
-		int		findSocketFromNickname(std::string target);
+		int			findSocketFromNickname(std::string target);
+		void		checkCommand(std::string arg, type_sock client_socket);
 
 		//Checkers
-		bool		check_activity(type_sock socket);
-		bool		rights_on_channel_name(type_sock client_socket, std::string channel_name);
+		bool	check_activity(type_sock socket);
+		bool	rights_on_channel_name(type_sock client_socket, std::string channel_name);
 
 		//Cleaners
-		void		reset_fd_set();
-		void		erase_one_user(type_sock userSocket);
-		void		erase_death_note();
-		void		erase_all_users();
-		void		erase_one_channel(std::string channel_name);
-		void		erase_closing_list();
-		void		erase_all_channels();
+		void	reset_fd_set();
+		void	erase_one_user(type_sock userSocket);
+		void	erase_death_note();
+		void	erase_all_users();
+		void	erase_one_channel(std::string channel_name);
+		void	erase_closing_list();
+		void	erase_all_channels();
 
 		// Commands
 		bool	cmdPass(std::string arg);

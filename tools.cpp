@@ -1,12 +1,15 @@
 #include "tools.hpp"
 
-bool	have_whitespaces(std::string arg)
+bool	check_password(std::string arg)
 {
-	for (unsigned long i = 0; i < arg.size(); i++)
-	{
-		if (isspace(arg[i]))
-			return (false);
-	}
+	//check if string size ranging from LEN_PWD_MIN and LEN_PORT_MAX
+	if (arg.empty() || arg.size() < LEN_PWD_MIN || arg.size() > LEN_PORT_MAX)
+		return (false);
+
+	//check if no whitespaces
+	if (!have_whitespaces(arg))
+		return (false);
+
 	return (true);
 }
 
@@ -31,19 +34,6 @@ bool	check_port(const char* arg)
 	return (true);
 }
 
-bool	check_password(std::string arg)
-{
-	//check if string size ranging from LEN_PWD_MIN and LEN_PORT_MAX
-	if (arg.empty() || arg.size() < LEN_PWD_MIN || arg.size() > LEN_PORT_MAX)
-		return (false);
-
-	//check if no whitespaces
-	if (!have_whitespaces(arg))
-		return (false);
-
-	return (true);
-}
-
 bool	check_valid_limit(std::string arg, int max)
 {
 	int size = 0;
@@ -63,5 +53,15 @@ bool	check_valid_limit(std::string arg, int max)
 	if (atoi(arg.c_str()) > max)
 		return (false);
 
+	return (true);
+}
+
+bool	have_whitespaces(std::string arg)
+{
+	for (unsigned long i = 0; i < arg.size(); i++)
+	{
+		if (isspace(arg[i]))
+			return (false);
+	}
 	return (true);
 }

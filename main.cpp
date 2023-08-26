@@ -1,9 +1,9 @@
 #include <iostream>
 #include <stdexcept>
+#include "tools.hpp"
 #include "Server.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
-#include "tools.hpp"
 
 void ircserv(int port, std::string serverPassword)
 {

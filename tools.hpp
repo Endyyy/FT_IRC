@@ -20,9 +20,9 @@
 
 typedef int type_sock;
 
-bool	check_port(const char* arg);
 bool	check_password(std::string arg);
-bool	have_whitespaces(std::string arg);
+bool	check_port(const char* arg);
 bool	check_valid_limit(std::string arg, int max);
+bool	have_whitespaces(std::string arg);
 
 #endif
