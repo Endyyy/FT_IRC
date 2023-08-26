@@ -871,6 +871,11 @@ void Server::cmdJoin(std::string arg, type_sock client_socket) //potentiellement
 			return ;
 		}
 	}
+	if (!(_channels.find(channel_name) == _channels.end()) && _channels[channel_name]->get_inviteState())
+	{
+		send(client_socket, "This channel is on invite-mode only !\n", strlen("This channel is on invite-mode only !\n"), 0);
+		return ;
+	}
 	if (_channels.find(channel_name) == _channels.end())  //Check si channel existe
 	{
 		if (!key.empty())								//Si channel n'existe pas et que le client a mis un pass, faux
