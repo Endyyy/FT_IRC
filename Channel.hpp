@@ -22,6 +22,7 @@ class Channel
 		std::string	_topic;
 		std::string	_password;
 		int			_limit;
+		bool		_inviteState;
 		std::vector<User*>	_reg_users;
 		std::vector<User*>	_reg_ope;
 		Channel();
@@ -38,8 +39,12 @@ class Channel
 		std::string	get_topic() const;
 		void		set_topic(std::string topic);
 		void		clear_topic();
+		void	set_inviteState();
+		void	set_topic(std::string topic);
+		void	clear_topic();
 
 		bool	hasUser(User* user) const;
+		bool	get_inviteState() const;
 		bool	getUserPrivilege(User *user) const;
 		void	addUser(User *user);
 		void	addOpe(User *user);

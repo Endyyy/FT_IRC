@@ -18,7 +18,7 @@ Channel& Channel::operator=(Channel const& source) { (void)source; return (*this
 ////////////////////////////////////////////////////////////////////////////////
 
 Channel::Channel(const std::string& name, User *user) :
-_name(name), _limit(INT_MAX)
+_name(name), _limit(INT_MAX), _inviteState(false)
 {
 	addOpe(user);
 	std::cout << "New channel \"" << _name << "\" is created" << std::endl;
@@ -78,6 +78,16 @@ std::string Channel::get_password() const
 std::string Channel::get_topic() const
 {
 	return (_topic);
+}
+
+bool Channel::get_inviteState() const
+{
+	return (_inviteState);
+}
+
+void Channel::set_inviteState()
+{
+	_inviteState = true;
 }
 
 void Channel::removeUser(User *user)
