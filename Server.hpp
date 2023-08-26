@@ -67,8 +67,14 @@ class Server
 		void			erase_one_channel(std::string channel_name);
 		void			erase_all_channels();
 		void			erase_closing_list();
+		bool			rights_on_channel_name(type_sock client_socket, std::string channel_name);
 		static void		ctrlC_behaviour(int signal);
 
+		void	limitManager(char mode, std::string channel_name, std::string limit);
+		void	operatorManager(char mode, std::string channel_name, std::string nickname);
+		void	keyManager(char mode, std::string channel_name, std::string password);
+		void	inviteManager(char mode, std::string channel_name, std::string nickname);
+		void	topicManager(char mode, std::string channel_name, std::string nickname);
 
 		bool	cmdPass(std::string arg);
 		bool	cmdNick(std::string arg, type_sock client_socket);

@@ -690,80 +690,133 @@ void Server::cmdTopic(std::string arg, type_sock client_socket)
 
 void Server::cmdMode(std::string arg, type_sock client_socket)
 {
-	// (void)arg;
-	// (void)client_socket;
-	// MODE - Changer le mode du channel :
-	// — i : Définir/supprimer le canal sur invitation uniquement
-	// ft_irc Internet Relay Chat
-	// — t : Définir/supprimer les restrictions de la commande TOPIC pour les opé-
-	// rateurs de canaux
-	// — k : Définir/supprimer la clé du canal (mot de passe)
-	// — o : Donner/retirer le privilège de l’opérateur de canal
-	// — l : Définir/supprimer la limite d’utilisateurs pour le canal
 	std::stringstream	stream(arg);
 	std::string			cmd;
 	std::string			channel_name;
-	std::string			limit;
-	std::string			user;
-	std::string			ban_mask;
+	std::string			modes;
+	std::string			parameter;
 	std::string			end;
 
-	if (!(stream >> cmd) || cmd != "MODE") 	//Check nom de la commande
-		return ;
-	if (!(stream >> channel_name))
+	stream >> cmd;
+	stream >> channel_name;
+	stream >> modes;
+	stream >> parameter;
+	stream >> end;
+
+	if (cmd.size() == 0 || channel_name.size() == 0 || modes.size() == 0
+	|| modes.size() > 2 || parameter.size() == 0 || end.size() != 0) // size check
+		send(client_socket, "MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n", strlen("MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n"), 0);
+	else if (channel_name[0] != '#' || (modes[0] != '-' && modes[0] != '+')
+	|| (modes[1] != 'o' && modes[1] != 'i' && modes[1] != 't' && modes[1] != 'k' && modes[1] != 'l'))//syntax check
+		send(client_socket, "MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n", strlen("MODE check_<channel> {[+|-]l|o|k|i|t} [<parameter>]\n"), 0);
+	else if (rights_on_channel_name(client_socket, channel_name))
+		send(client_socket, "You have no operator rights on this channel\n", strlen("You have no operator rights on this channel\n"), 0);
+	else
 	{
-		send(client_socket, "MODE <channel> {[+|-]|o|i|t|k|l} [<limit>] [<user>] [<ban mask>]\n", strlen("JMODE <channel> {[+|-]|o|i|t|k|l} [<limit>] [<user>] [<ban mask>]\n"), 0);
-		return ;
+		if (modes[1] == 'l')
+			limitManager(modes[0], channel_name, parameter);
+		if (modes[1] == 'o')
+			operatorManager(modes[0], channel_name, parameter);
+		if (modes[1] == 'k')
+			keyManager(modes[0], channel_name, parameter);
+		if (modes[1] == 'i')
+			inviteManager(modes[0], channel_name, parameter);
+		if (modes[1] == 't')
+			topicManager(modes[0], channel_name, parameter);
 	}
-	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
-		return ;
-	if (stream)												//Recupere potentiel 3eme argument
-		stream >> limit;
-	// if (stream)
-	// {
-	// 	stream >> end;
-	// 	if (!end.empty())
-	// 	{
-	// 		send(client_socket, "JOIN <#channel_name> <limit>\n", strlen("JOIN <#channel_name> <limit>\n"), 0);
-	// 		return ;
-	// 	}
-	// }
-	// if (_channels.find(channel_name) == _channels.end())  //Check si channel existe
-	// {
-	// 	if (!limit.empty())								//Si channel n'existe pas et que le client a mis un pass, faux
-	// 	{
-	// 		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
-	// 		return ;
-	// 	}
-	// 	_channels[channel_name] = new Channel(channel_name, _clients[client_socket]);  //Sinon cree channel
-	// 	send(client_socket, "New channel created !\n", strlen("New channel created !\n"), 0);
-	// 	return ;
-	// }
-	// if (!limit.empty() && _channels[channel_name]->get_password().empty()) //Si le channel n'a pas de pass et que le client en a mis un, faux
-	// {
-	// 	send(client_socket, "No limit set on the channel yet !\n", strlen("No limit set on the channel yet !\n"), 0);
-	// 	return ;
-	// }
-	// else
-	// {
-	// 	if (!(_channels[channel_name]->get_password().empty())) //Check si channel password
-	// 	{
-	// 		if (limit.empty() || limit != _channels[channel_name]->get_password()) //Check pass donne par le client
-	// 		{
-	// 			send(client_socket, "Wrong channel password !\n", strlen("Wrong channel password !\n"), 0);
-	// 			return ;
-	// 		}
-	// 	}
-	// 	if (_channels[channel_name]->hasUser(_clients[client_socket])) //Check si le client est deja sur le channel
-	// 	{
-    //         send(client_socket, "You are already in the channel !\n", strlen("You are already in the channel !\n"), 0);
-    //         return ;
-    //     }
-	// 	_channels[channel_name]->addUser(_clients[client_socket]); //Sinon add le nouvel user et en averti les autres sur le channel
-    // 	std::string user_join_message = ":" + _clients[client_socket]->get_nickname() + " JOIN " + channel_name + "\n";
-    // 	_channels[channel_name]->sendMessage(user_join_message, client_socket);
-	// }
 }
+
+bool	Server::rights_on_channel_name(type_sock client_socket, std::string channel_name)
+{
+	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
+	if (chan_it == _channels.end())
+		return (false);
+	std::map<type_sock, User*>::iterator client_it = _clients.find(client_socket);
+	if (client_it == _clients.end())
+		return (false);
+	if (chan_it->second->getUserPrivilege(client_it->second))
+		return (true);
+	return (false);
+}
+
+void	Server::limitManager(char mode, std::string channel_name, std::string limit)
+{
+	// — l : Définir/supprimer la limite d’utilisateurs pour le canal
+	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
+	if (it != _channels.end(), check_valid_limit(limit, MAX_CLIENTS))
+	{
+		if (mode == '+')
+			it->second->setLimit(atoi(limit.c_str()));
+		else
+			it->second->setLimit(INT_MAX);
+	}
+}
+
+void	Server::operatorManager(char mode, std::string channel_name, std::string nickname)
+{
+	// — o : Donner/retirer le privilège de l’opérateur de canal
+	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
+	std::map<type_sock, User*>::iterator client_it = _clients.find(findSocketFromNickname(nickname));
+	if (chan_it != _channels.end() && client_it != _clients.end())
+	{
+		if (chan_it->second->hasUser(client_it->second))
+		{
+			if (mode == '+')
+				chan_it->second->addOpe(client_it->second);
+			else
+				chan_it->second->removeOpe(client_it->second);
+		}
+		/////////////////////gerer le cas ou la cible ne fait pas partie du channel. exception ?
+	}
+}
+
+void	Server::keyManager(char mode, std::string channel_name, std::string password)
+{
+	// — k : Définir/supprimer la clé du canal (mot de passe)
+	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
+	if (it != _channels.end())//checker si password valide ? caracteres interdits?
+	{
+		if (mode == '+')
+			it->second->set_password(password);
+		else
+			it->second->set_password("");//ou check booleen signifiant si le channel est verrouille ou pas
+	}
+}
+
+void	Server::inviteManager(char mode, std::string channel_name, std::string nickname)
+{
+		// — i : Définir/supprimer le canal sur invitation uniquement
+	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
+	if (it != _channels.end())
+	{
+		if (mode == '+')
+		{
+
+		}
+		else
+		{
+
+		}
+	}
+}
+
+void	Server::topicManager(char mode, std::string channel_name, std::string nickname)
+{
+		// — t : Définir/supprimer les restrictions de la commande TOPIC pour les opérateurs de canaux
+	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
+	if (it != _channels.end())
+	{
+		if (mode == '+')
+		{
+
+		}
+		else
+		{
+
+		}
+	}
+}
+
 
 void Server::cmdJoin(std::string arg, type_sock client_socket) //potentiellement passe en void
 {

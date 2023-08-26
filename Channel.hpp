@@ -13,6 +13,7 @@
 # include <algorithm>
 # include <arpa/inet.h>
 # include <cctype>
+# include <climits>
 
 class Channel
 {
@@ -20,6 +21,7 @@ class Channel
 		std::string	_name;
 		std::string	_topic;
 		std::string	_password;
+		int			_limit;
 		std::vector<User*>	_reg_users;
 		std::vector<User*>	_reg_ope;
 		Channel();
@@ -30,11 +32,12 @@ class Channel
 		Channel(const std::string& name, User *user);
 		~Channel();
 
-		std::string get_password() const;
-		std::string get_topic() const;
+		std::string	get_password() const;
+		void		set_password(std::string password);
 
-		void	set_topic(std::string topic);
-		void	clear_topic();
+		std::string	get_topic() const;
+		void		set_topic(std::string topic);
+		void		clear_topic();
 
 		bool	hasUser(User* user) const;
 		bool	getUserPrivilege(User *user) const;
@@ -42,6 +45,9 @@ class Channel
 		void	addOpe(User *user);
 		void	removeUser(User *user);
 		void	sendMessage(const std::string& message, type_sock sender_socket);
+
+		void	setLimit(int limit);
+		int		getLimit() const;
 
 };
 

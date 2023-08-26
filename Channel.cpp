@@ -18,7 +18,7 @@ Channel& Channel::operator=(Channel const& source) { (void)source; return (*this
 ////////////////////////////////////////////////////////////////////////////////
 
 Channel::Channel(const std::string& name, User *user) :
-_name(name)
+_name(name), _limit(INT_MAX)
 {
 	addOpe(user);
 	std::cout << "New channel \"" << _name << "\" is created" << std::endl;
@@ -112,4 +112,20 @@ void	Channel::set_topic(std::string topic)
 void	Channel::clear_topic()
 {
 	_topic.clear();
+}
+
+
+void	Channel::setLimit(int limit)
+{
+	_limit = limit;
+}
+
+int	Channel::getLimit() const
+{
+	return (_limit);
+}
+
+void	Channel::set_password(std::string password)
+{
+	_password = password;
 }

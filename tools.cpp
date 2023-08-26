@@ -43,3 +43,25 @@ bool	check_password(std::string arg)
 
 	return (true);
 }
+
+bool	check_valid_limit(std::string arg, int max)
+{
+	int size = 0;
+	int checker = max;
+	while (checker)
+	{
+		checker = checker / 10;
+		size++;
+	}
+	if (arg.size() > size)
+		return (false);
+
+	for (int i = 0; arg[i]; i++)
+		if (strchr("0123456789", arg[i]) == NULL)
+			return (false);
+
+	if (atoi(arg.c_str()) > max)
+		return (false);
+
+	return (true);
+}
