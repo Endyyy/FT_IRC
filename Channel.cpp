@@ -85,6 +85,11 @@ bool Channel::get_inviteState() const
 	return (_inviteState);
 }
 
+void Channel::set_inviteState()
+{
+	_inviteState = true;
+}
+
 void Channel::removeUser(User *user)
 {
 	for (size_t i = 0; i < _reg_users.size(); ++i)

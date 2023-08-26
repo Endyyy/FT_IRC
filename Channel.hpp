@@ -34,6 +34,7 @@ class Channel
 		std::string get_password() const;
 		std::string get_topic() const;
 
+		void	set_inviteState();
 		void	set_topic(std::string topic);
 		void	clear_topic();
 
