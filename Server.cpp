@@ -545,17 +545,17 @@ void Server::cmdKick(std::string arg, type_sock client_socket)
 		return ;
 	if (!(stream >> channel_name))
 	{
-		send(client_socket, "KICK <#channel_name> <user> [<comment>]\n", strlen("KICK <#channel_name> <user> [<comment>]\n"), 0);
+		send(client_socket, "KICK <#channel_name> <nickname> [<comment>]\n", strlen("KICK <#channel_name> <nickname> [<comment>]\n"), 0);
 		return ;
 	}
 	if (channel_name[0] != '#' || channel_name.size() == 1)
 	{
-		send(client_socket, "KICK <#channel_name> <user> [<comment>]\n", strlen("KICK <#channel_name> <user> [<comment>]\n"), 0);
+		send(client_socket, "KICK <#channel_name> <nickname> [<comment>]\n", strlen("KICK <#channel_name> <nickname> [<comment>]\n"), 0);
 		return ;
 	}
 	if (!(stream >> banned_user))
 	{
-		send(client_socket, "KICK <#channel_name> <user> [<comment>]\n", strlen("KICK <#channel_name> <user> [<comment>]\n"), 0);
+		send(client_socket, "KICK <#channel_name> <nickname> [<comment>]\n", strlen("KICK <#channel_name> <nickname> [<comment>]\n"), 0);
 		return ;
 	}
 	if (stream)
@@ -609,14 +609,93 @@ void Server::cmdKick(std::string arg, type_sock client_socket)
 
 void Server::cmdInvite(std::string arg, type_sock client_socket)
 {
-	(void)arg;
-	(void)client_socket;
+	std::stringstream	stream(arg);
+	std::string			cmd;
+	std::string			channel_name;
+	std::string			invited_user;
+
+	if (!(stream >> cmd) || cmd != "INVITE")
+		return ;
+	if (!(stream >> channel_name))
+	{
+		send(client_socket, "INVITE <#channel_name> <nickname>\n", strlen("INVITE <#channel_name> <nickname>\n"), 0);
+		return ;
+	}
+	if (channel_name[0] != '#' || channel_name.size() == 1)
+	{
+		send(client_socket, "INVITE <#channel_name> <nickname>\n", strlen("INVITE <#channel_name> <nickname>\n"), 0);
+		return ;
+	}
+	if (!(stream >> invited_user))
+	{
+		send(client_socket, "INVITE <#channel_name> <nickname>\n", strlen("INVITE <#channel_name> <nickname>\n"), 0);
+		return ;
+	}
+	if (_channels.find(channel_name) == _channels.end())
+	{
+		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+		return ;
+	}
+	type_sock targetSocket = findSocketFromNickname(invited_user);
+	if (targetSocket == -1)
+	{
+		send(client_socket, "Target does not exist !\n", strlen("Target does not exist !\n"), 0);
+		return ;
+	}
+	if (_channels[channel_name]->get_inviteState())
+	{
+		if (!(_channels[channel_name]->getUserPrivilege(_clients[client_socket])))
+		{
+			send(client_socket, "You don't have the right to use this command !\n", \
+			strlen("You don't have the right to use this command !\n"), 0);
+			return ;
+		}
+	}
+	_channels[channel_name]->addUser(_clients[targetSocket]);
+    std::string invite_message = "You were invited by " + _clients[client_socket]->get_nickname() + " on " + channel_name + "\n";
+    send(targetSocket ,invite_message.c_str(), invite_message.size(), 0);
 }
 
 void Server::cmdPart(std::string arg, type_sock client_socket)
 {
-	(void)arg;
-	(void)client_socket;
+	std::stringstream	stream(arg);
+	std::string			cmd;
+	std::string			channel_name;
+	std::string			end;
+
+	if (!(stream >> cmd) || cmd != "PART")
+		return ;
+	if (!(stream >> channel_name))
+	{
+		send(client_socket, "PART <#channel_name>\n", strlen("PART <#channel_name>\n"), 0);
+		return ;
+	}
+	if (channel_name[0] != '#' || channel_name.size() == 1)
+	{
+		send(client_socket, "PART <#channel_name>\n", strlen("PART <#channel_name>\n"), 0);
+		return ;
+	}
+	if (stream)
+	{
+		stream >> end;
+		if (!end.empty())
+			return ;
+	}
+	if (_channels.find(channel_name) == _channels.end())
+	{
+		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+		return ;
+	}
+	if (!(_channels[channel_name]->hasUser(_clients[client_socket])))
+	{
+		send(client_socket, "You're not even registered in the channel !\n", strlen("You're not even registered in the channel !\n"), 0);
+		return ;
+	}
+	_channels[channel_name]->removeUser(_clients[client_socket]); /////////////Voir pour le remove channel
+	std::string leaving_message = ":" + _clients[client_socket]->get_nickname() + " has left " + channel_name + "\n";
+    _channels[channel_name]->sendMessage(leaving_message, client_socket);
+
+
 }
 
 void Server::cmdTopic(std::string arg, type_sock client_socket)
