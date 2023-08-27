@@ -27,7 +27,8 @@ class Channel
 		std::string	_topic;
 		std::string	_password;
 		int			_limit;
-		bool		_inviteState;
+		bool		_flagInvite;
+		bool		_flagTopic;
 
 		std::vector<User*>	_reg_users;
 		std::vector<User*>	_reg_ope;
@@ -44,13 +45,14 @@ class Channel
 		std::string	get_password() const;
 		std::string	get_topic() const;
 		int			getLimit() const;
-		bool		get_inviteState() const;
+		bool		get_flagInvite() const;
 
 		// Setters
 		void	set_password(std::string password);
 		void	set_topic(std::string topic);
 		void	setLimit(int limit);
-		void	set_inviteState(bool state);
+		void	set_flagInvite(bool state);
+		void	set_flagTopic(bool state);
 
 		// Checkers
 		bool	check_if_ope(User *user) const;

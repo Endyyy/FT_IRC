@@ -8,7 +8,7 @@ Channel& Channel::operator=(Channel const& source) { (void)source; return (*this
 ///////////////////////////////////////////////////////////////////////////////
 
 Channel::Channel(const std::string& name, User *user) :
-_name(name), _limit(INT_MAX), _inviteState(false)
+_name(name), _limit(INT_MAX), _flagInvite(false), _flagTopic(false)
 {
 	addOpe(user);
 	std::cout << "New channel \"" << _name << "\" is created" << std::endl;
@@ -37,9 +37,9 @@ int	Channel::getLimit() const
 	return (_limit);
 }
 
-bool Channel::get_inviteState() const
+bool Channel::get_flagInvite() const
 {
-	return (_inviteState);
+	return (_flagInvite);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -60,9 +60,14 @@ void	Channel::setLimit(int limit)
 	_limit = limit;
 }
 
-void Channel::set_inviteState(bool state)
+void	Channel::set_flagInvite(bool flag)
 {
-	_inviteState = state;
+	_flagInvite = flag;
+}
+
+void	Channel::set_flagTopic(bool flag)
+{
+	_flagTopic = flag;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

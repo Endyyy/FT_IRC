@@ -93,10 +93,10 @@ class Server
 
 		// CmdMode tools
 		void	limitManager(char mode, std::string channel_name, std::string limit);
-		void	operatorManager(char mode, std::string channel_name, std::string nickname);
+		void	operatorManager(char mode, type_sock requester, std::string channel_name, std::string nickname);
 		void	keyManager(char mode, std::string channel_name, std::string password);
-		void	inviteManager(char mode, std::string channel_name, std::string nickname);
-		void	topicManager(char mode, std::string channel_name, std::string nickname);
+		void	inviteManager(char mode, std::string channel_name);
+		void	topicManager(char mode, std::string channel_name);
 
 		//ERROR_MSGS
 

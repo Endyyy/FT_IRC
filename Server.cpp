@@ -570,7 +570,7 @@ void Server::cmdJoin(std::string arg, type_sock client_socket) //potentiellement
 			return ;
 		}
 	}
-	if (!(_channels.find(channel_name) == _channels.end()) && _channels[channel_name]->get_inviteState())
+	if (!(_channels.find(channel_name) == _channels.end()) && _channels[channel_name]->get_flagInvite())
 	{
 		send(client_socket, "This channel is on invite-mode only !\n", strlen("This channel is on invite-mode only !\n"), 0);
 		return ;
@@ -762,7 +762,7 @@ void Server::cmdInvite(std::string arg, type_sock client_socket)
 		send(client_socket, "Target does not exist !\n", strlen("Target does not exist !\n"), 0);
 		return ;
 	}
-	if (_channels[channel_name]->get_inviteState())
+	if (_channels[channel_name]->get_flagInvite())
 	{
 		if (!(_channels[channel_name]->check_if_ope(_clients[client_socket])))
 		{
@@ -914,25 +914,35 @@ void Server::cmdMode(std::string arg, type_sock client_socket)
 	stream >> end;
 
 	if (cmd.size() == 0 || channel_name.size() == 0 || modes.size() == 0
-	|| modes.size() > 2 || parameter.size() == 0 || end.size() != 0) // size check
-		send(client_socket, "MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n", strlen("MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n"), 0);
+	|| modes.size() > 2 || end.size() != 0) // size check
+		send(client_socket, "Usage : MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n", strlen("Usage : MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n"), 0);
 	else if (channel_name[0] != '#' || (modes[0] != '-' && modes[0] != '+')
 	|| (modes[1] != 'o' && modes[1] != 'i' && modes[1] != 't' && modes[1] != 'k' && modes[1] != 'l'))//syntax check
-		send(client_socket, "MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n", strlen("MODE check_<channel> {[+|-]l|o|k|i|t} [<parameter>]\n"), 0);
+		send(client_socket, "Usage : MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n", strlen("Usage : MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n"), 0);
 	else if (rights_on_channel_name(client_socket, channel_name))
 		send(client_socket, "You have no operator rights on this channel\n", strlen("You have no operator rights on this channel\n"), 0);
 	else
 	{
-		if (modes[1] == 'l')
-			limitManager(modes[0], channel_name, parameter);
-		if (modes[1] == 'o')
-			operatorManager(modes[0], channel_name, parameter);
-		if (modes[1] == 'k')
-			keyManager(modes[0], channel_name, parameter);
-		if (modes[1] == 'i')
-			inviteManager(modes[0], channel_name, parameter);
-		if (modes[1] == 't')
-			topicManager(modes[0], channel_name, parameter);
+		if (parameter.size() != 0)
+		{
+			if (modes[1] == 'l')
+				limitManager(modes[0], channel_name, parameter);
+			else if (modes[1] == 'o')
+				operatorManager(modes[0], client_socket, channel_name, parameter);
+			else if (modes[1] == 'k')
+				keyManager(modes[0], channel_name, parameter);
+			else
+				send(client_socket, "Usage : MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n", strlen("Usage : MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n"), 0);
+		}
+		else
+		{
+			if (modes[1] == 't')
+				topicManager(modes[0], channel_name);
+			if (modes[1] == 'i')
+				inviteManager(modes[0], channel_name);
+		}
+		if ((modes[1] == 't' || modes[1] == 'i') && parameter.size() != 0)
+				send(client_socket, "Usage : MODE <channel> {[+|-]t|i}\n", strlen("Usage : MODE <channel> {[+|-]t|i}\n"), 0);
 	}
 }
 
@@ -952,21 +962,20 @@ void	Server::limitManager(char mode, std::string channel_name, std::string limit
 	}
 }
 
-void	Server::operatorManager(char mode, std::string channel_name, std::string nickname)
+void	Server::operatorManager(char mode, type_sock requester, std::string channel_name, std::string nickname)
 {
 	// — o : Donner/retirer le privilège de l’opérateur de canal
 	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
-	std::map<type_sock, User*>::iterator client_it = _clients.find(findSocketFromNickname(nickname));
-	if (chan_it != _channels.end() && client_it != _clients.end())
+	std::map<type_sock, User*>::iterator target_it = _clients.find(findSocketFromNickname(nickname));
+	std::map<type_sock, User*>::iterator req_it = _clients.find(requester);
+	if (chan_it == _channels.end() && target_it == _clients.end())
+		return ;
+	if (req_it != target_it && chan_it->second->check_if_user(target_it->second))
 	{
-		if (chan_it->second->check_if_user(client_it->second))
-		{
-			if (mode == '+')
-				chan_it->second->addOpe(client_it->second);
-			else
-				chan_it->second->removeOpe(client_it->second);
-		}
-		/////////////////////gerer le cas ou la cible ne fait pas partie du channel. exception ?
+		if (mode == '+')
+			chan_it->second->addOpe(target_it->second);
+		else
+			chan_it->second->removeOpe(target_it->second);
 	}
 }
 
@@ -983,39 +992,27 @@ void	Server::keyManager(char mode, std::string channel_name, std::string passwor
 	}
 }
 
-void	Server::inviteManager(char mode, std::string channel_name, std::string nickname)
+void	Server::inviteManager(char mode, std::string channel_name)
 {
-	(void)nickname;///////////////////delete
-		// — i : Définir/supprimer le canal sur invitation uniquement
-	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
-	if (it != _channels.end())
+	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
+	if (chan_it != _channels.end())
 	{
 		if (mode == '+')
-		{
-
-		}
+			chan_it->second->set_flagInvite(true);
 		else
-		{
-
-		}
+			chan_it->second->set_flagInvite(false);
 	}
 }
 
-void	Server::topicManager(char mode, std::string channel_name, std::string nickname)
+void	Server::topicManager(char mode, std::string channel_name)
 {
-	(void)nickname;///////////////////delete
-		// — t : Définir/supprimer les restrictions de la commande TOPIC pour les opérateurs de canaux
-	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
-	if (it != _channels.end())
+	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
+	if (chan_it != _channels.end())
 	{
 		if (mode == '+')
-		{
-
-		}
+			chan_it->second->set_flagTopic(true);
 		else
-		{
-
-		}
+			chan_it->second->set_flagTopic(false);
 	}
 }
 
