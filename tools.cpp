@@ -36,7 +36,7 @@ bool	check_port(const char* arg)
 
 bool	check_valid_limit(std::string arg, int max)
 {
-	int size = 0;
+	long unsigned int size = 0;
 	int checker = max;
 	while (checker)
 	{
@@ -58,9 +58,11 @@ bool	check_valid_limit(std::string arg, int max)
 
 bool	have_whitespaces(std::string arg)
 {
-	for (unsigned long i = 0; i < arg.size(); i++)
+	for (long unsigned int i = 0; i < arg.size(); i++)
 	{
 		if (isspace(arg[i]))
+			return (false);
+		if (i == INT_MAX)
 			return (false);
 	}
 	return (true);

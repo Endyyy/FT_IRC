@@ -60,65 +60,59 @@ void	Channel::setLimit(int limit)
 	_limit = limit;
 }
 
-void Channel::set_inviteState()
+void Channel::set_inviteState(bool state)
 {
-	_inviteState = true;
+	_inviteState = state;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Checkers
 
-bool Channel::getUserPrivilege(User *user) const
+bool Channel::check_if_ope(User *user) const
 {
-	for (size_t i = 0; i < _reg_ope.size(); ++i)
-	{
-		if (_reg_ope[i] == user)
-			return true;
-	}
+	std::vector<User*>::const_iterator it = std::find(_reg_ope.begin(), _reg_ope.end(), user);
+	if (it != _reg_ope.end())
+		return (true);
 	return false;
 }
 
-bool Channel::hasUser(User* user) const
+bool Channel::check_if_user(User* user) const
 {
-	for (size_t i = 0; i < _reg_users.size(); ++i)
-	{
-		if (_reg_users[i] == user)
-			return true;
-	}
-	for (size_t i = 0; i < _reg_ope.size(); ++i)
-	{
-		if (_reg_ope[i] == user)
-			return true;
-	}
+	std::vector<User*>::const_iterator it = std::find(_reg_users.begin(), _reg_users.end(), user);
+	if (it != _reg_users.end())
+		return (true);
 	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Methods
 
-void Channel::addUser(User *user)
+bool Channel::addUser(User *user)
 {
-	_reg_users.push_back(user);
+	if (!check_if_user(user))
+	{
+		_reg_users.push_back(user);
+		return (true);
+	}
+	return (false);
 }
 
-void Channel::addOpe(User *user)
+bool Channel::addOpe(User *user)
 {
-	_reg_ope.push_back(user);
+	if (check_if_user(user) && !check_if_ope(user))
+	{
+		_reg_ope.push_back(user);
+		return (true);
+	}
+	return (false);
 }
 
 void Channel::sendMessage(const std::string& message, type_sock sender_socket)
 {
-	for (size_t i = 0; i < _reg_users.size(); ++i)
+	for (std::vector<User*>::iterator it = _reg_users.begin(); it != _reg_users.end(); it++)
 	{
-		User* user = _reg_users[i];
-		if (user->get_userSocket() != sender_socket)
-			send(user->get_userSocket(), message.c_str(), message.size(), 0);
-	}
-	for (size_t i = 0; i < _reg_ope.size(); ++i)
-	{
-		User* user = _reg_ope[i];
-		if (user->get_userSocket() != sender_socket)
-			send(user->get_userSocket(), message.c_str(), message.size(), 0);
+		if ((*it)->get_userSocket() != sender_socket)
+			send((*it)->get_userSocket(), message.c_str(), message.size(), 0);
 	}
 }
 
@@ -130,16 +124,27 @@ void	Channel::clear_topic()
 	_topic.clear();
 }
 
-void Channel::removeUser(User *user)
+bool	Channel::removeOpe(User *user)
 {
-	for (size_t i = 0; i < _reg_users.size(); ++i)
+	std::vector<User*>::iterator ope_it = std::find(_reg_ope.begin(), _reg_ope.end(), user);
+	if (ope_it != _reg_ope.end())
 	{
-		if (_reg_users[i] == user)
-		   _reg_users.erase(_reg_users.begin() + i);
+		_reg_ope.erase(ope_it);
+		return (true);
 	}
-	for (size_t i = 0; i < _reg_ope.size(); ++i)
+	return (false);
+}
+
+bool Channel::removeUser(User *user)
+{
+	std::vector<User*>::iterator ope_it = std::find(_reg_ope.begin(), _reg_ope.end(), user);
+	std::vector<User*>::iterator user_it = std::find(_reg_users.begin(), _reg_users.end(), user);
+	if (ope_it != _reg_ope.end())
+		_reg_ope.erase(ope_it);
+	if (user_it != _reg_users.end())
 	{
-		if (_reg_ope[i] == user)
-		   _reg_ope.erase(_reg_ope.begin() + i);
+		_reg_users.erase(user_it);
+		return (true);
 	}
+	return (false);
 }

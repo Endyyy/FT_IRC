@@ -50,20 +50,21 @@ class Channel
 		void	set_password(std::string password);
 		void	set_topic(std::string topic);
 		void	setLimit(int limit);
-		void	set_inviteState();
+		void	set_inviteState(bool state);
 
 		// Checkers
-		bool	getUserPrivilege(User *user) const;
-		bool	hasUser(User* user) const;
+		bool	check_if_ope(User *user) const;
+		bool	check_if_user(User* user) const;
 
 		// Methods
-		void	addUser(User *user);
-		void	addOpe(User *user);
+		bool	addUser(User *user);
+		bool	addOpe(User *user);
 		void	sendMessage(const std::string& message, type_sock sender_socket);
 
 		// Cleaners
 		void	clear_topic();
-		void	removeUser(User *user);
+		bool	removeUser(User *user);
+		bool	removeOpe(User *user);
 
 };
 

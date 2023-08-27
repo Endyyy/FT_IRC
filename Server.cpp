@@ -335,7 +335,7 @@ bool	Server::rights_on_channel_name(type_sock client_socket, std::string channel
 	std::map<type_sock, User*>::iterator client_it = _clients.find(client_socket);
 	if (client_it == _clients.end())
 		return (false);
-	if (chan_it->second->getUserPrivilege(client_it->second))
+	if (chan_it->second->check_if_ope(client_it->second))
 		return (true);
 	return (false);
 }
@@ -601,7 +601,7 @@ void Server::cmdJoin(std::string arg, type_sock client_socket) //potentiellement
 				return ;
 			}
 		}
-		if (_channels[channel_name]->hasUser(_clients[client_socket])) //Check si le client est deja sur le channel
+		if (_channels[channel_name]->check_if_user(_clients[client_socket])) //Check si le client est deja sur le channel
 		{
             send(client_socket, "You are already in the channel !\n", strlen("You are already in the channel !\n"), 0);
             return ;
@@ -642,7 +642,7 @@ void Server::cmdKick(std::string arg, type_sock client_socket)
 		stream >> std::ws;
 		std::getline(stream, ban_msg);
 	}
-	if (!(_channels[channel_name]->getUserPrivilege(_clients[client_socket])))
+	if (!(_channels[channel_name]->check_if_ope(_clients[client_socket])))
 	{
 		send(client_socket, "You don't have the right to use this command !\n", \
 		strlen("You don't have the right to use this command !\n"), 0);
@@ -659,7 +659,7 @@ void Server::cmdKick(std::string arg, type_sock client_socket)
 		send(client_socket, "Target does not exist !\n", strlen("Target does not exist !\n"), 0);
 		return ;
 	}
-	if (!(_channels[channel_name]->hasUser(_clients[targetSocket])))
+	if (!(_channels[channel_name]->check_if_user(_clients[targetSocket])))
 	{
 		send(client_socket, "The target is not registered in the channel !\n", strlen("The target is not registered in the channel !\n"), 0);
 		return ;
@@ -716,7 +716,7 @@ void Server::cmdPart(std::string arg, type_sock client_socket)
 		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
 		return ;
 	}
-	if (!(_channels[channel_name]->hasUser(_clients[client_socket])))
+	if (!(_channels[channel_name]->check_if_user(_clients[client_socket])))
 	{
 		send(client_socket, "You're not even registered in the channel !\n", strlen("You're not even registered in the channel !\n"), 0);
 		return ;
@@ -764,7 +764,7 @@ void Server::cmdInvite(std::string arg, type_sock client_socket)
 	}
 	if (_channels[channel_name]->get_inviteState())
 	{
-		if (!(_channels[channel_name]->getUserPrivilege(_clients[client_socket])))
+		if (!(_channels[channel_name]->check_if_ope(_clients[client_socket])))
 		{
 			send(client_socket, "You don't have the right to use this command !\n", \
 			strlen("You don't have the right to use this command !\n"), 0);
@@ -805,7 +805,7 @@ void Server::cmdTopic(std::string arg, type_sock client_socket)
 		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
 		return ;
 	}
-	if (!(_channels[channel_name]->hasUser(_clients[client_socket])))
+	if (!(_channels[channel_name]->check_if_user(_clients[client_socket])))
 	{
 		send(client_socket, "You're not registered in the channel !\n", strlen("You're not registered in the channel !\n"), 0);
 		return ;
@@ -827,12 +827,12 @@ void Server::cmdTopic(std::string arg, type_sock client_socket)
 			send(client_socket, "TOPIC <#channel_name> :<topic>\n", strlen("TOPIC <#channel_name> :<topic>\n"), 0);
 			return ;
 		}
-		if (topic.size() == 1 && _channels[channel_name]->getUserPrivilege(_clients[client_socket]))
+		if (topic.size() == 1 && _channels[channel_name]->check_if_ope(_clients[client_socket]))
 		{
 			_channels[channel_name]->clear_topic();
 			return ;
 		}
-		if (_channels[channel_name]->getUserPrivilege(_clients[client_socket]))
+		if (_channels[channel_name]->check_if_ope(_clients[client_socket]))
 		{
 			_channels[channel_name]->set_topic(topic);
 			std::string new_topic_message = "TOPIC " + channel_name + " " + _channels[channel_name]->get_topic() + "\n";
@@ -876,7 +876,7 @@ void Server::cmdPrivMsg(std::string arg, type_sock client_socket)
 			send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
 			return ;
 		}
-		if (!(_channels[target]->hasUser(_clients[client_socket])))
+		if (!(_channels[target]->check_if_user(_clients[client_socket])))
 		{
 			send(client_socket, "You're not registered in the channel !\n", strlen("You're not registered in the channel !\n"), 0);
 			return ;
@@ -959,7 +959,7 @@ void	Server::operatorManager(char mode, std::string channel_name, std::string ni
 	std::map<type_sock, User*>::iterator client_it = _clients.find(findSocketFromNickname(nickname));
 	if (chan_it != _channels.end() && client_it != _clients.end())
 	{
-		if (chan_it->second->hasUser(client_it->second))
+		if (chan_it->second->check_if_user(client_it->second))
 		{
 			if (mode == '+')
 				chan_it->second->addOpe(client_it->second);
@@ -985,6 +985,7 @@ void	Server::keyManager(char mode, std::string channel_name, std::string passwor
 
 void	Server::inviteManager(char mode, std::string channel_name, std::string nickname)
 {
+	(void)nickname;///////////////////delete
 		// — i : Définir/supprimer le canal sur invitation uniquement
 	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
 	if (it != _channels.end())
@@ -1002,6 +1003,7 @@ void	Server::inviteManager(char mode, std::string channel_name, std::string nick
 
 void	Server::topicManager(char mode, std::string channel_name, std::string nickname)
 {
+	(void)nickname;///////////////////delete
 		// — t : Définir/supprimer les restrictions de la commande TOPIC pour les opérateurs de canaux
 	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
 	if (it != _channels.end())
