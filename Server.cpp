@@ -588,18 +588,17 @@ void Server::cmdJoin(std::string input, type_sock client_socket)// work in progr
 	{
 		_channels.insert(std::make_pair(channel_name, new Channel(channel_name, client_it->second)));
 		std::cout << "channel creation done in cmdJoin" << std::endl;
+		chan_it = _channels.find(channel_name);
 	}
 	else if (success) // channel already existing
 	{
 		chan_it->second->addUser(client_it->second);
 		std::cout << "add user (if not existing already) done in cmdJoin" << std::endl;
-
-	}
-	chan_it = _channels.find(channel_name);
-	if (chan_it != _channels.end())
-	{
-		std::string user_join_message = ":" + client_it->second->get_nickname() + " JOIN " + channel_name + "\n";
-		chan_it->second->sendMessage(user_join_message, client_socket);
+		if (chan_it != _channels.end())
+		{
+			std::string user_join_message = ":" + client_it->second->get_nickname() + " JOIN " + channel_name + "\n";
+			chan_it->second->sendMessage(user_join_message, client_socket);
+		}
 	}
 }
 

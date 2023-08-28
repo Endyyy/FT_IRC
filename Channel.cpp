@@ -10,6 +10,7 @@ Channel& Channel::operator=(Channel const& source) { (void)source; return (*this
 Channel::Channel(const std::string& name, User *user) :
 _name(name), _limit(NOT_SET), _flagInvite(false), _flagPassword(false), _flagTopic(false)
 {
+	addUser(user);
 	addOpe(user);
 	std::cout << "New channel \"" << _name << "\" is created" << std::endl;
 }
@@ -135,12 +136,19 @@ bool	Channel::check_if_space_available()
 
 bool	Channel::addUser(User *user)
 {
-	if (!check_if_user(user) && check_if_space_available())
+	if (!check_if_user(user))
 	{
-		std::cout << "addUser because not find in reg_users" << std::endl;
-		_reg_users.push_back(user);
-		send(user->get_userSocket(), "You have become member of this channel\n", strlen("You have become member of this channel\n"), 0);
-		return (true);
+		if (check_if_space_available())
+		{
+			std::cout << "addUser because not find in reg_users" << std::endl;
+			_reg_users.push_back(user);
+			return (true);
+		}
+		else
+		{
+			send(user->get_userSocket(), "Error : the channel is full.\n", strlen("Error : the channel is full.\n"), 0);
+			std::cout << "channel is full. addUser aborted" << std::endl;
+		}
 	}
 	return (false);
 }
@@ -149,9 +157,16 @@ bool	Channel::addOpe(User *user)
 {
 	if (!check_if_ope(user))
 	{
-		_reg_ope.push_back(user);
-		send(user->get_userSocket(), "You have become operator on this channel !\n", strlen("You have become operator on this channel !\n"), 0);
-		return (true);
+		if (check_if_user(user))
+		{
+			_reg_ope.push_back(user);
+			return (true);
+		}
+		else
+		{
+			send(user->get_userSocket(), "Error : client is supposed to be user in order to be also operator\n", strlen("Error : client is supposed to be user in order to be also operator\n"), 0);
+			std::cout << "user cannot become ope without being a user" << std::endl;
+		}
 	}
 	return (false);
 }
