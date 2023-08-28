@@ -98,7 +98,7 @@ void	Server::run()
 				add_new_user(socket);
 				std::cout << "new user added" << std::endl;
 
-				if (_active && _clients[socket]->get_userState() == 0)
+				if (_active && _clients.find(socket) != _clients.end() && _clients[socket]->get_userState() == 0)
 					send(socket, "PASS <password>\n", strlen("PASS <password>\n"), 0);
 			}
 		}
@@ -123,7 +123,8 @@ void	Server::run()
 
 							checkCommand(input, socket);
 							std::cout << "command checked" << std::endl;
-							_clients[socket]->reset_inputStack();
+							if (_active && _clients.find(socket) != _clients.end())
+								_clients[socket]->reset_inputStack();
 						}
 					}
 				}
@@ -144,6 +145,7 @@ void	Server::run()
 
 		if (_active)
 		{
+			std::cout << "cleaning iteration" << std::endl;
 			erase_death_note();
 			add_empty_channels_to_closing_list();
 			erase_closing_list();
@@ -223,7 +225,10 @@ void	Server::add_empty_channels_to_closing_list()
 	for (std::map<std::string, Channel*>::iterator chan_it = _channels.begin(); chan_it != _channels.end(); chan_it++)
 	{
 		if (chan_it->second->check_if_empty())
+		{
 			_closing_list.push_back(chan_it->first);
+			std::cout << "channel is pushed back on closing list" << std::endl;
+		}
 	}
 }
 
@@ -311,6 +316,7 @@ void Server::checkCommand(std::string input, type_sock client_socket)
 	stream >> cmd;
 	if (cmd == "QUIT" && input.size() == 4)
 		erase_one_user(client_socket);
+		// cmdQuit(client_socket);
 	else if (lvl < 3)
 		ask_for_login_credentials(input, client_socket, lvl);
 	else if (cmd.size())
@@ -331,8 +337,8 @@ void Server::checkCommand(std::string input, type_sock client_socket)
 			cmdTopic(input, client_socket);
 		else if (cmd == "NICK")
 			cmdNick(input, client_socket);
-		else if (cmd == "QUIT")
-			send(client_socket, "Usage : QUIT\n",strlen("Usage : QUIT\n"), 0);
+		// else if (cmd == "QUIT")
+		// 	send(client_socket, "Usage : QUIT\n",strlen("Usage : QUIT\n"), 0);
 		else
 			send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, PART, QUIT.\n",\
 			strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, PART, QUIT.\n"), 0);
@@ -402,6 +408,7 @@ void	Server::erase_one_user(type_sock userSocket)//////////// a controler
 		delete it->second;
 		it->second = NULL;
 		_clients.erase(it);
+		std::cout << "TEST" << std::endl;
 	}
 }
 
@@ -461,6 +468,7 @@ void	Server::manhunt(User* user)
 		if (chan_it->second->check_if_user(user))
 			chan_it->second->removeUser(user);
 	}
+	std::cout << "manhunt done" << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -498,7 +506,7 @@ bool Server::cmdNick(std::string input, type_sock client_socket)// done
 	stream >> nickname;
 	stream >> end;
 
-	std::cout << "cmdNick" << cmd.size() << nickname.size() << end.size() << std::endl;
+	std::cout << "cmdNick" << std::endl;
 
 	if (cmd.size() == 0 || nickname.size() == 0 || end.size() != 0 || cmd != ("NICK"))
 		return (false);
@@ -555,9 +563,6 @@ bool Server::cmdUser(std::string input, type_sock client_socket)// done
 
 void Server::cmdJoin(std::string input, type_sock client_socket)// work in progress
 {
-	/////////////// implementer gestion des limites de membres a un channel
-	/////////////// revoir le fonctionnement d'invite dans channel et repercuter les modifs
-
 	std::stringstream	stream(input);
 	std::string			cmd;
 	std::string			channel_name;
@@ -587,12 +592,14 @@ void Server::cmdJoin(std::string input, type_sock client_socket)// work in progr
 	if (success > 1) // channel creation
 	{
 		_channels.insert(std::make_pair(channel_name, new Channel(channel_name, client_it->second)));
+		send(client_it->second->get_userSocket(), "You have become member and operator of the channel !\n", strlen("You have become member and operator of the channel !\n"), 0);
 		std::cout << "channel creation done in cmdJoin" << std::endl;
 		chan_it = _channels.find(channel_name);
 	}
 	else if (success) // channel already existing
 	{
-		chan_it->second->addUser(client_it->second);
+		if (chan_it->second->addUser(client_it->second))
+			send(client_it->second->get_userSocket(), "You have become member of the channel !\n", strlen("You have become member of the channel !\n"), 0);
 		std::cout << "add user (if not existing already) done in cmdJoin" << std::endl;
 		if (chan_it != _channels.end())
 		{
@@ -963,7 +970,7 @@ void	Server::limitManager(char mode, std::string channel_name, std::string limit
 		if (mode == '+')
 			it->second->setLimit(atoi(limit.c_str()));
 		else
-			it->second->setLimit(INT_MAX);
+			it->second->setLimit(NOT_SET);
 	}
 }
 

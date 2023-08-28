@@ -113,11 +113,11 @@ bool	Channel::check_if_inv(std::string username) const
 	return (false);
 }
 
-bool	Channel::check_if_empty() const
+bool	Channel::check_if_empty() const////////////////rename ?
 {
 	std::vector<User*>::const_iterator it = _reg_users.begin();
-	if (it == _reg_users.end())
-		return (true);
+	// if (it == _reg_users.end())
+	// 	return (true);
 	it = _reg_ope.begin();
 	if (it == _reg_ope.end())
 		return (true);
@@ -233,6 +233,7 @@ bool	Channel::removeUser(User *user)
 {
 	std::vector<User*>::iterator ope_it = std::find(_reg_ope.begin(), _reg_ope.end(), user);
 	std::vector<User*>::iterator user_it = std::find(_reg_users.begin(), _reg_users.end(), user);
+	// std::cout << "removeUser" << std::endl;
 	if (ope_it != _reg_ope.end())
 		_reg_ope.erase(ope_it);
 	if (user_it != _reg_users.end())
