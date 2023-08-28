@@ -287,7 +287,7 @@ void	Server::ask_for_login_credentials(std::string input, type_sock client_socke
 	}
 }
 
-type_sock	Server::findSocketFromNickname(std::string target)
+type_sock	Server::findSocketFromNickname(std::string target)/////////////voir si -1 ne va pas casser d'autres fonctions
 {
 	type_sock targetSocket = -1;
 	for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
@@ -304,7 +304,7 @@ type_sock	Server::findSocketFromNickname(std::string target)
 
 void Server::checkCommand(std::string input, type_sock client_socket)
 {
-	int					lvl = _clients[client_socket]->get_userState();
+	int					lvl = _clients[client_socket]->get_userState();//////////////////////risquee, modifier par iterator
 	std::stringstream	stream(input);
 	std::string			cmd;
 
@@ -363,7 +363,7 @@ bool	Server::check_fobidden_char_free(std::string name)
 	for (int i = 0; name[i]; i++)
 	{
 		if (name[i] < 32 || name[i] == 127 || name[i] == ':'
-		|| name[i] == ',' || name[i] == ';' || name[i] == '!' || name[i] == '#')
+		|| name[i] == ',' || name[i] == ';' || name[i] == '!' || name[i] == '#')////////// <= 32 plutot ?
 			return (false);
 	}
 	return (true);
@@ -391,7 +391,7 @@ void	Server::reset_fd_set()
 	}
 }
 
-void	Server::erase_one_user(type_sock userSocket)
+void	Server::erase_one_user(type_sock userSocket)//////////// a controler
 {
 	std::map<type_sock, User*>::iterator it = _clients.find(userSocket);
 	if (it != _clients.end())
@@ -793,7 +793,7 @@ void Server::cmdInvite(std::string arg, type_sock client_socket)
 	// {
 	// 	if (!(_channels[channel_name]->check_if_ope(_clients[client_socket])))
 	// 	{
-	// 		send(client_socket, "You don't have the right to use this command !\n", \
+	// 		send(client_socket, "You don't have the right to use this command !\n",
 	// 		strlen("You don't have the right to use this command !\n"), 0);
 	// 		return ;
 	// 	}
