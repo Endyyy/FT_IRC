@@ -83,3 +83,4 @@ TO DO (26/08 11:45h):
 
 	- tester toute les fonctions avec tout les modes possibles (+-itkol, trop d'args, pas assez d'arg, wrong args, etc)
 
+	- verifier si des throw ne sont pas restes inutilement dans le code depuis qu'on a change de strat

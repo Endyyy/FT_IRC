@@ -9,7 +9,7 @@ Server::Server(Server const& source) : _port(), _serverPassword(), _serverSocket
 Server& Server::operator=(Server const& source) { (void)source; return (*this); }
 ////////////////////////////////////////////////////////////////////////////////
 
-Server::Server(int port, std::string serverPassword) :
+Server::Server(type_sock port, std::string serverPassword) :
 _port(port), _serverPassword(serverPassword), _serverSocket(socket(AF_INET, SOCK_STREAM, 0))
 {
 	if (_serverSocket == -1)
@@ -22,9 +22,10 @@ _port(port), _serverPassword(serverPassword), _serverSocket(socket(AF_INET, SOCK
 Server::~Server()
 {
 	erase_all_channels();
+	std::cout << "All channels are deleted" << std::endl;
 	erase_all_users();
-	close(_serverSocket);
 	std::cout << "All users are deleted" << std::endl;
+	close(_serverSocket);
 	std::cout << "Server destroyed" << std::endl;
 }
 
@@ -39,6 +40,14 @@ void	Server::set_address()
 	_address.sin_addr.s_addr = INADDR_ANY;
 	// Use our desired port number
 	_address.sin_port = htons(_port);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Getters
+
+std::string const	Server::get_serverPassword() const
+{
+	return (_serverPassword);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -135,7 +144,11 @@ void	Server::run()
 		}
 
 		if (_active)
+		{
 			erase_death_note();
+			add_empty_channels_to_closing_list();
+			erase_closing_list();
+		}
 	}
 }
 
@@ -143,7 +156,7 @@ void	Server::ctrlC_behaviour(int signal)
 {
 	(void)signal;
 	_active = false;
-	std::cout << "CTRL C SUCCESS" << std::endl;
+	// std::cout << "CTRL C SUCCESS" << std::endl;
 }
 
 void	Server::waiting_for_activity()
@@ -204,6 +217,15 @@ bool	Server::recv_from_user(type_sock userSocket)
 			send(userSocket, "^D", strlen("^D"), 0);
 	}
 	return (false);
+}
+
+void	Server::add_empty_channels_to_closing_list()
+{
+	for (std::map<std::string, Channel*>::iterator chan_it = _channels.begin(); chan_it != _channels.end(); chan_it++)
+	{
+		if (chan_it->second->check_if_empty())
+			_closing_list.push_back(chan_it->first);
+	}
 }
 
 std::string Server::get_clientDatas(type_sock socket)
@@ -271,7 +293,7 @@ type_sock	Server::findSocketFromNickname(std::string target)
 	type_sock targetSocket = -1;
 	for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
-    	User* user = it->second;
+		User* user = it->second;
 		if (user->get_nickname() == target)
 		{
 			targetSocket = user->get_userSocket();
@@ -283,38 +305,38 @@ type_sock	Server::findSocketFromNickname(std::string target)
 
 void Server::checkCommand(std::string input, type_sock client_socket)
 {
-	int						lvl = _clients[client_socket]->get_userState();
-	std::stringstream		stream(input);
-	std::string				cmd;
+	int					lvl = _clients[client_socket]->get_userState();
+	std::stringstream	stream(input);
+	std::string			cmd;
 
-	if (lvl < 3)
+	stream >> cmd;
+	if (cmd == "QUIT" && input.size() == 4)
+		erase_one_user(client_socket);
+	else if (lvl < 3)
 		ask_for_login_credentials(input, client_socket, lvl);
-	else
+	else if (cmd.size())
 	{
-		if (stream >> cmd)
-		{
-			if (cmd == "JOIN")
-				cmdJoin(input, client_socket);
-			else if (cmd == "PRIVMSG")
-				cmdPrivMsg(input, client_socket);
-			else if (cmd == "PART")
-				cmdPart(input, client_socket);
-			else if (cmd == "INVITE")
-				cmdInvite(input, client_socket);
-			else if (cmd == "KICK")
-				cmdKick(input, client_socket);
-			else if (cmd == "MODE")
-				cmdMode(input, client_socket);
-			else if (cmd == "TOPIC")
-				cmdTopic(input, client_socket);
-			else if (cmd == "NICK")
-				cmdNick(input, client_socket);
-			else if (cmd == "QUIT" && input.size() == 4)///////////////////voir si on permet QUIT aussi pour les lvl < 3
-				erase_one_user(client_socket);///////////////pas encore testee
-			else
-				send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, PART, QUIT.\n",\
-				strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, PART, QUIT.\n"), 0);
-		}
+		if (cmd == "JOIN")
+			cmdJoin(input, client_socket);
+		else if (cmd == "PRIVMSG")
+			cmdPrivMsg(input, client_socket);
+		else if (cmd == "PART")
+			cmdPart(input, client_socket);
+		else if (cmd == "INVITE")
+			cmdInvite(input, client_socket);
+		else if (cmd == "KICK")
+			cmdKick(input, client_socket);
+		else if (cmd == "MODE")
+			cmdMode(input, client_socket);
+		else if (cmd == "TOPIC")
+			cmdTopic(input, client_socket);
+		else if (cmd == "NICK")
+			cmdNick(input, client_socket);
+		else if (cmd == "QUIT")
+			send(client_socket, "Usage : QUIT\n",strlen("Usage : QUIT\n"), 0);
+		else
+			send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, PART, QUIT.\n",\
+			strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, PART, QUIT.\n"), 0);
 	}
 	std::cout << "Received data from client, socket fd: " << client_socket << ", Data: " << input << std::endl;
 }
@@ -330,14 +352,22 @@ bool	Server::check_activity(type_sock socket)
 bool	Server::rights_on_channel_name(type_sock client_socket, std::string channel_name)
 {
 	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
-	if (chan_it == _channels.end())
-		return (false);
 	std::map<type_sock, User*>::iterator client_it = _clients.find(client_socket);
-	if (client_it == _clients.end())
-		return (false);
-	if (chan_it->second->check_if_ope(client_it->second))
-		return (true);
+	if (chan_it != _channels.end() && client_it != _clients.end())
+		if (chan_it->second->check_if_ope(client_it->second))
+			return (true);
 	return (false);
+}
+
+bool	Server::check_fobidden_char_free(std::string name)
+{
+	for (int i = 0; name[i]; i++)
+	{
+		if (name[i] < 32 || name[i] == 127 || name[i] == ':'
+		|| name[i] == ',' || name[i] == ';' || name[i] == '!' || name[i] == '#')
+			return (false);
+	}
+	return (true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -353,7 +383,7 @@ void	Server::reset_fd_set()
 	_topSocket = _serverSocket;
 
 	// Add clients sockets to the set
-	for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); it++)
 	{
 		if (it->first > 0)
 			FD_SET(it->first, &_readfds);
@@ -367,6 +397,7 @@ void	Server::erase_one_user(type_sock userSocket)
 	std::map<type_sock, User*>::iterator it = _clients.find(userSocket);
 	if (it != _clients.end())
 	{
+		manhunt(it->second);
 		FD_CLR(userSocket, &_readfds);
 		close(userSocket);
 		delete it->second;
@@ -424,192 +455,181 @@ void	Server::erase_all_channels()
 	erase_closing_list();
 }
 
+void	Server::manhunt(User* user)
+{
+	for (std::map<std::string, Channel*>::iterator chan_it = _channels.begin(); chan_it != _channels.end(); chan_it++)
+	{
+		if (chan_it->second->check_if_user(user))
+			chan_it->second->removeUser(user);
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Commands
 
-bool Server::cmdPass(std::string arg)
+bool Server::cmdPass(std::string input)//done
 {
-	std::stringstream	stream(arg);
+	std::stringstream	stream(input);
 	std::string			cmd;
-	std::string			passwd;
+	std::string			password;
 	std::string			end;
 
 	std::cout << "cmdPass" << std::endl;
-	std::cout << "arg : " << arg << std::endl;
+	std::cout << "input : " << input << std::endl;
 
-	if (!(stream >> cmd) || cmd != "PASS") {
-		std::cout << "cmd" << std::endl;
+	stream >> cmd;
+	stream >> password;
+	stream >> end;
 
+	if (cmd.size() == 0 || password.size() == 0 || end.size() != 0 || cmd != "PASS")
 		return (false);
-	}
-	if (!(stream >> passwd)) {
-		std::cout << "passwd" << std::endl;
-
-		return (false);
-	}
-	if (stream)
-	{
-		std::cout << "stream" << std::endl;
-		stream >> end;
-		if (!end.empty())
-			return (false);
-	}
-	if (passwd == _serverPassword)
+	if (password == get_serverPassword())
 		return (true);
 	return (false);
 }
 
-bool Server::cmdNick(std::string arg, int client_socket)
+bool Server::cmdNick(std::string input, type_sock client_socket)//done
 {
-	std::stringstream	stream(arg);
+	std::stringstream	stream(input);
 	std::string			cmd;
 	std::string			nickname;
 	std::string			end;
 
-	std::cout << "cmdNick" << std::endl;
+	stream >> cmd;
+	stream >> nickname;
+	stream >> end;
 
-	// syntax test
-	if (!(stream >> cmd) || cmd != "NICK")
+	std::cout << "cmdNick" << cmd.size() << nickname.size() << end.size() << std::endl;
+
+	if (cmd.size() == 0 || nickname.size() == 0 || end.size() != 0 || cmd != ("NICK"))
 		return (false);
-	if (!(stream >> nickname))
+
+	// forbiden character test
+	if (!check_fobidden_char_free(nickname))
 	{
+		send(client_socket, "Abort. Nickname cannot contain whitespaces or : , ; ! or #\n",
+		strlen("Abort. Nickname cannot contain whitespaces or : , ; ! or #\n"), 0);
 		return (false);
-	}
-	if (stream)
-	{
-		stream >> end;
-		if (!end.empty())
-			return (false);
 	}
 
 	// availability test
-	for (std::map<int, User*>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+	for (std::map<type_sock, User*>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
-		User* user = it->second;
-		if (user->get_nickname() == nickname && nickname[0] != '\n')
+		if (it->second->get_nickname() == nickname && nickname[0] != '\n')/////////// pas d'erreur ici ?
 		{
 			send(client_socket, "Nickname already taken.\n", strlen("Nickname already taken.\n"), 0);
 			return (false);
 		}
 	}
 
-	// forbiden character test
-	for (int i = 0; nickname[i]; i++)
-	{
-		if (nickname[i] < 32 || nickname[i] == ':' || nickname[i] == ';' || nickname[i] == '!' || nickname[i] == ',')
-		{
-			send(client_socket, "Erroneous nickname.\n", strlen("Erroneous nickname.\n"), 0);
-			return (false);
-		}
-	}
 	_clients[client_socket]->set_nickname(nickname);
 	return (true);
 }
 
-bool Server::cmdUser(std::string arg, int client_socket)
+bool Server::cmdUser(std::string input, type_sock client_socket)//done
 {
-	std::stringstream	stream(arg);
+	std::stringstream	stream(input);
 	std::string			cmd;
 	std::string			username;
 	std::string			end;
 
 	std::cout << "cmdUser" << std::endl;
 
-	// syntax test
-	if (!(stream >> cmd) || cmd != "USER") {
+	stream >> cmd;
+	stream >> username;
+	stream >> end;
+
+	if (cmd.size() == 0 || username.size() < 2 || username[0] != ':' || end.size() != 0 || cmd != "USER")
 		return (false);
-	}
-	if (!(stream >> username)) {
-		return (false);
-	}
-	if (stream)
+
+	username.erase(username.begin());
+	if (!check_fobidden_char_free(username))
 	{
-		stream >> end;
-		if (!end.empty() || username[0] != ':' || username.size() == 1)
+			send(client_socket, "Abort. Username cannot contain whitespaces or : , ; ! or #\n",
+			strlen("Abort. Username cannot contain whitespaces or : , ; ! or #\n"), 0);
 			return (false);
 	}
 
-	// forbidden character test
-	for (int i = 1; username[i]; i++)
-	{
-		if (username[i] < 32 || username[i] == ':' || username[i] == ';' || username[i] == '!' || username[i] == ',')
-		{
-			send(client_socket, "Erroneous username.\n", strlen("Erroneous username.\n"), 0);
-			return (false);
-		}
-	}
 	_clients[client_socket]->set_username(username);
 	return (true);
 }
 
-void Server::cmdJoin(std::string arg, type_sock client_socket) //potentiellement passe en void
+void Server::cmdJoin(std::string input, type_sock client_socket)//tous les cas de figures possibles sont geres mais manque de dialogue sur les etapes de conclusion
 {
-	std::stringstream	stream(arg);
+	std::stringstream	stream(input);
 	std::string			cmd;
 	std::string			channel_name;
 	std::string			key;
 	std::string			end;
+	int					success = 1;
 
-	if (!(stream >> cmd) || cmd != "JOIN") 	//Check nom de la commande
-		return ;
-	if (!(stream >> channel_name))
+	stream >> cmd;
+	stream >> channel_name;
+	stream >> key;
+	stream >> end;
+
+	if (cmd.size() == 0 || channel_name.size() < 2 || channel_name[0] != '#' || end.size() != 0)
 	{
-		send(client_socket, "JOIN <#channel_name> <key>\n", strlen("JOIN <#channel_name> <key>\n"), 0);
+		send(client_socket, "Usage : JOIN <#channel_name> <(key)>\n", strlen("Usage : JOIN <#channel_name> <(key)>\n"), 0);
 		return ;
 	}
-	if (channel_name[0] != '#' || channel_name.size() == 1) //Check syntaxe du nom du channel
-		return ;
-	if (stream)												//Recupere potentiel 3eme argument
-		stream >> key;
-	if (stream)
+
+	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
+	std::map<type_sock, User*>::iterator client_it = _clients.find(client_socket);
+
+	if (key.size()) // password given
 	{
-		stream >> end;
-		if (!end.empty())
+		if (chan_it == _channels.end())// no channel, no password
+			send(client_socket, "There is no such channel. Abort.\n", strlen("There is no such channel. Abort.\n"), 0);
+		else if (!chan_it->second->get_flagPassword()) // password not required
+			send(client_socket, "No password required for this channel. Abort.\n", strlen("No password required for this channel. Abort.\n"), 0);
+		else if (chan_it->second->get_flagInvite())// invitation required
 		{
-			send(client_socket, "JOIN <#channel_name> <key>\n", strlen("JOIN <#channel_name> <key>\n"), 0);
-			return ;
+			if (!chan_it->second->check_if_inv(client_it->second->get_nickname())) // not found on invitation list
+				send(client_socket, "You cannot join this channel without being invitated to. Abort.\n", strlen("You cannot join this channel without being invitated to. Abort.\n"), 0);
+			else if (key != chan_it->second->get_password()) // invited but wrong password
+				send(client_socket, "Wrong password. Abort.\n", strlen("Wrong password. Abort.\n"), 0);
+			else // password ok, invitation ok
+				success = 1;
 		}
+		else if (key != chan_it->second->get_password()) // password required but not invitation
+			send(client_socket, "Wrong password. Abort.\n", strlen("Wrong password. Abort.\n"), 0);
+		else // password only ok
+			success = 1;
+
 	}
-	if (!(_channels.find(channel_name) == _channels.end()) && _channels[channel_name]->get_flagInvite())
+	else // no password given
 	{
-		send(client_socket, "This channel is on invite-mode only !\n", strlen("This channel is on invite-mode only !\n"), 0);
-		return ;
-	}
-	if (_channels.find(channel_name) == _channels.end())  //Check si channel existe
-	{
-		if (!key.empty())								//Si channel n'existe pas et que le client a mis un pass, faux
+		if (chan_it == _channels.end())// no channel, no password
+			success = 2;
+		else if (chan_it->second->get_flagPassword()) // password required
+			send(client_socket, "Password required for this channel. Abort.\n", strlen("Password required for this channel. Abort.\n"), 0);
+		else if (chan_it->second->get_flagInvite())// invitation only required
 		{
-			send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
-			return ;
+			if (!chan_it->second->check_if_inv(client_it->second->get_nickname())) // not invited
+				send(client_socket, "You cannot join this channel without being invitated to. Abort.\n", strlen("You cannot join this channel without being invitated to. Abort.\n"), 0);
+			else // invited
+				success = 1;
 		}
-		_channels[channel_name] = new Channel(channel_name, _clients[client_socket]);  //Sinon cree channel
-		send(client_socket, "New channel created !\n", strlen("New channel created !\n"), 0);
-		return ;
+		else
+			success = 1; // no password neither invitation required
+
 	}
-	if (!key.empty() && _channels[channel_name]->get_password().empty()) //Si le channel n'a pas de pass et que le client en a mis un, faux
+
+	if (success > 1)
 	{
-		send(client_socket, "No key set on the channel yet !\n", strlen("No key set on the channel yet !\n"), 0);
-		return ;
+		_channels.insert(std::make_pair(channel_name, new Channel(channel_name, client_it->second)));
+		std::cout << "channel creation done in cmdJoin" << std::endl;
 	}
-	else
+	else if (success)
 	{
-		if (!(_channels[channel_name]->get_password().empty())) //Check si channel password
-		{
-			if (key.empty() || key != _channels[channel_name]->get_password()) //Check pass donne par le client
-			{
-				send(client_socket, "Wrong channel password !\n", strlen("Wrong channel password !\n"), 0);
-				return ;
-			}
-		}
-		if (_channels[channel_name]->check_if_user(_clients[client_socket])) //Check si le client est deja sur le channel
-		{
-            send(client_socket, "You are already in the channel !\n", strlen("You are already in the channel !\n"), 0);
-            return ;
-        }
-		_channels[channel_name]->addUser(_clients[client_socket]); //Sinon add le nouvel user et en averti les autres sur le channel
-    	std::string user_join_message = ":" + _clients[client_socket]->get_nickname() + " JOIN " + channel_name + "\n";
-    	_channels[channel_name]->sendMessage(user_join_message, client_socket);
+		chan_it->second->addUser(client_it->second);
+		std::cout << "add user (if not existing already) done in cmdJoin" << std::endl;
+
 	}
+	chan_it = _channels.find(channel_name);
+	std::string user_join_message = ":" + client_it->second->get_nickname() + " JOIN " + channel_name + "\n";
+	chan_it->second->sendMessage(user_join_message, client_socket);
 }
 
 void Server::cmdKick(std::string arg, type_sock client_socket)
@@ -675,14 +695,14 @@ void Server::cmdKick(std::string arg, type_sock client_socket)
 		std::string ban_message_plus = channel_name + " :You were kicked by " + _clients[client_socket]->get_nickname() + " (" + ban_msg + ")\n";
 		send(targetSocket, ban_message_plus.c_str(), ban_message_plus.size(), 0);
 		std::string ban_chan_message_plus = channel_name + " :" + _clients[targetSocket]->get_nickname() + " was kicked by " + _clients[client_socket]->get_nickname() + " (" + ban_msg + ")\n";
-    	_channels[channel_name]->sendMessage(ban_chan_message_plus, client_socket);
+		_channels[channel_name]->sendMessage(ban_chan_message_plus, client_socket);
 	}
 	else
 	{
 		std::string ban_message = channel_name + " :You were kicked by " + _clients[client_socket]->get_nickname() + "\n";
 		send(targetSocket, ban_message.c_str(), ban_message.size(), 0);
 		std::string ban_chan_message = channel_name + " :" + _clients[targetSocket]->get_nickname() + " was kicked by " + _clients[client_socket]->get_nickname() + "\n";
-    	_channels[channel_name]->sendMessage(ban_chan_message, client_socket);
+		_channels[channel_name]->sendMessage(ban_chan_message, client_socket);
 	}
 }
 
@@ -723,7 +743,7 @@ void Server::cmdPart(std::string arg, type_sock client_socket)
 	}
 	_channels[channel_name]->removeUser(_clients[client_socket]); /////////////Voir pour le remove channel
 	std::string leaving_message = ":" + _clients[client_socket]->get_nickname() + " has left " + channel_name + "\n";
-    _channels[channel_name]->sendMessage(leaving_message, client_socket);
+	_channels[channel_name]->sendMessage(leaving_message, client_socket);
 	send(client_socket, "You left the channel !\n", strlen("You left the channel !\n"), 0);
 }
 
@@ -772,8 +792,8 @@ void Server::cmdInvite(std::string arg, type_sock client_socket)
 		}
 	}
 	_channels[channel_name]->addUser(_clients[targetSocket]);
-    std::string invite_message = "You were invited by " + _clients[client_socket]->get_nickname() + " on " + channel_name + "\n";
-    send(targetSocket ,invite_message.c_str(), invite_message.size(), 0);
+	std::string invite_message = "You were invited by " + _clients[client_socket]->get_nickname() + " on " + channel_name + "\n";
+	send(targetSocket ,invite_message.c_str(), invite_message.size(), 0);
 }
 
 void Server::cmdTopic(std::string arg, type_sock client_socket)
@@ -836,7 +856,7 @@ void Server::cmdTopic(std::string arg, type_sock client_socket)
 		{
 			_channels[channel_name]->set_topic(topic);
 			std::string new_topic_message = "TOPIC " + channel_name + " " + _channels[channel_name]->get_topic() + "\n";
-    		_channels[channel_name]->sendMessage(new_topic_message, client_socket);
+			_channels[channel_name]->sendMessage(new_topic_message, client_socket);
 			return ;
 		}
 		else
@@ -986,9 +1006,12 @@ void	Server::keyManager(char mode, std::string channel_name, std::string passwor
 	if (it != _channels.end())//checker si password valide ? caracteres interdits?
 	{
 		if (mode == '+')
+		{
+			it->second->set_flagPassword(true);
 			it->second->set_password(password);
+		}
 		else
-			it->second->set_password("");//ou check booleen signifiant si le channel est verrouille ou pas
+			it->second->unset_flagPassword();
 	}
 }
 

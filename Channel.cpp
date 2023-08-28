@@ -8,7 +8,7 @@ Channel& Channel::operator=(Channel const& source) { (void)source; return (*this
 ///////////////////////////////////////////////////////////////////////////////
 
 Channel::Channel(const std::string& name, User *user) :
-_name(name), _limit(INT_MAX), _flagInvite(false), _flagTopic(false)
+_name(name), _limit(INT_MAX), _flagInvite(false), _flagPassword(false), _flagTopic(false)
 {
 	addOpe(user);
 	std::cout << "New channel \"" << _name << "\" is created" << std::endl;
@@ -37,9 +37,19 @@ int	Channel::getLimit() const
 	return (_limit);
 }
 
-bool Channel::get_flagInvite() const
+bool	Channel::get_flagInvite() const
 {
 	return (_flagInvite);
+}
+
+bool	Channel::get_flagPassword() const
+{
+	return (_flagPassword);
+}
+
+bool	Channel::get_flagTopic() const
+{
+	return (_flagTopic);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -65,6 +75,11 @@ void	Channel::set_flagInvite(bool flag)
 	_flagInvite = flag;
 }
 
+void	Channel::set_flagPassword(bool flag)
+{
+	_flagPassword = flag;
+}
+
 void	Channel::set_flagTopic(bool flag)
 {
 	_flagTopic = flag;
@@ -73,44 +88,90 @@ void	Channel::set_flagTopic(bool flag)
 ///////////////////////////////////////////////////////////////////////////////
 // Checkers
 
-bool Channel::check_if_ope(User *user) const
+bool	Channel::check_if_ope(User *user) const
 {
 	std::vector<User*>::const_iterator it = std::find(_reg_ope.begin(), _reg_ope.end(), user);
 	if (it != _reg_ope.end())
 		return (true);
-	return false;
+	return (false);
 }
 
-bool Channel::check_if_user(User* user) const
+bool	Channel::check_if_user(User* user) const
 {
 	std::vector<User*>::const_iterator it = std::find(_reg_users.begin(), _reg_users.end(), user);
 	if (it != _reg_users.end())
 		return (true);
-	return false;
+	return (false);
+}
+
+bool	Channel::check_if_inv(std::string username) const
+{
+	std::vector<std::string>::const_iterator it = std::find(_reg_inv.begin(), _reg_inv.end(), username);
+	if (it != _reg_inv.end())
+		return (true);
+	return (false);
+}
+
+bool	Channel::check_if_empty() const
+{
+	std::vector<User*>::const_iterator it = _reg_users.begin();
+	if (it == _reg_users.end())
+		return (true);
+	it = _reg_ope.begin();
+	if (it == _reg_ope.end())
+		return (true);
+	return (false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Methods
 
-bool Channel::addUser(User *user)
+bool	Channel::addUser(User *user)
 {
 	if (!check_if_user(user))
 	{
+		std::cout << "addUser because not find in reg_users" << std::endl;
 		_reg_users.push_back(user);
+		send(user->get_userSocket(), "You have become member of this channel\n", strlen("You have become member of this channel\n"), 0);
 		return (true);
 	}
 	return (false);
 }
 
-bool Channel::addOpe(User *user)
+bool	Channel::addOpe(User *user)
 {
-	if (check_if_user(user) && !check_if_ope(user))
+	_reg_users.push_back(user);
+	if (!check_if_ope(user))
 	{
 		_reg_ope.push_back(user);
+		send(user->get_userSocket(), "You have become operator on this channel !\n", strlen("You have become operator on this channel !\n"), 0);
 		return (true);
 	}
 	return (false);
 }
+
+bool	Channel::addInv(std::string const username)
+{
+	if (!check_if_inv(username))
+	{
+		_reg_inv.push_back(username);
+		return (true);
+	}
+	return (false);
+}
+
+void	Channel::unset_flagInvite()
+{
+	set_flagInvite(false);
+	_reg_inv.clear();
+}
+
+void	Channel::unset_flagPassword()
+{
+	set_flagPassword(false);
+	set_password("");
+}
+
 
 void Channel::sendMessage(const std::string& message, type_sock sender_socket)
 {
@@ -140,7 +201,7 @@ bool	Channel::removeOpe(User *user)
 	return (false);
 }
 
-bool Channel::removeUser(User *user)
+bool	Channel::removeUser(User *user)
 {
 	std::vector<User*>::iterator ope_it = std::find(_reg_ope.begin(), _reg_ope.end(), user);
 	std::vector<User*>::iterator user_it = std::find(_reg_users.begin(), _reg_users.end(), user);
@@ -149,6 +210,17 @@ bool Channel::removeUser(User *user)
 	if (user_it != _reg_users.end())
 	{
 		_reg_users.erase(user_it);
+		return (true);
+	}
+	return (false);
+}
+
+bool	Channel::removeInv(std::string const username)
+{
+	std::vector<std::string>::iterator user_it = std::find(_reg_inv.begin(), _reg_inv.end(), username);
+	if (user_it != _reg_inv.end())
+	{
+		_reg_inv.erase(user_it);
 		return (true);
 	}
 	return (false);

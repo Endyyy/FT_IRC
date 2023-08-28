@@ -46,11 +46,14 @@ class Server
 		Server&	operator=(Server const& source);
 
 	public:
-		Server(int port, std::string serverPassword);
+		Server(type_sock port, std::string serverPassword);
 		~Server();
 
 		// Setters
-		void		set_address();
+		void	set_address();
+
+		// Getters
+		std::string const	get_serverPassword() const;
 
 		// Methods
 		void		bind_socket_to_address();
@@ -61,6 +64,7 @@ class Server
 		type_sock	get_incoming_socket();
 		void		add_new_user(type_sock userSocket);
 		bool		recv_from_user(type_sock userSocket);
+		void		add_empty_channels_to_closing_list();
 		std::string get_clientDatas(type_sock socket);
 		void		ask_for_login_credentials(std::string arg, type_sock client_socket, int lvl);
 		int			findSocketFromNickname(std::string target);
@@ -69,6 +73,7 @@ class Server
 		//Checkers
 		bool	check_activity(type_sock socket);
 		bool	rights_on_channel_name(type_sock client_socket, std::string channel_name);
+		bool	check_fobidden_char_free(std::string name);
 
 		//Cleaners
 		void	reset_fd_set();
@@ -78,6 +83,7 @@ class Server
 		void	erase_one_channel(std::string channel_name);
 		void	erase_closing_list();
 		void	erase_all_channels();
+		void	manhunt(User* user);
 
 		// Commands
 		bool	cmdPass(std::string arg);
