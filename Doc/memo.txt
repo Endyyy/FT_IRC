@@ -79,4 +79,5 @@ A CORRIGER (28/08, 12h):
 PASS : good
 NICK : good
 USER : good
+JOIN : JOIN #test #test
 QUIT : segfault
