@@ -13,7 +13,7 @@ SRCS =  Server.cpp \
 OBJ = $(SRCS:.cpp=.o)
 
 %.o : %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c -g $< -o $@
 
 NAME = ircserv
 

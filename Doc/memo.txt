@@ -74,13 +74,9 @@ ORDRE DES OPERATIONS
 note :
 - on ne peut faire aucun while en dehors du principal : ça bloquerait le server en attente d'un input d'un client et ça ferait foirer le sujet
 
-TO DO (26/08 11:45h):
-	- JOIN : - check limit
-			- verifier gestion key
-	- INVITE : - check limit
+A CORRIGER (28/08, 12h):
 
-	- factoriser certains bloc communs aux commandes (cleaner code)
-
-	- tester toute les fonctions avec tout les modes possibles (+-itkol, trop d'args, pas assez d'arg, wrong args, etc)
-
-	- verifier si des throw ne sont pas restes inutilement dans le code depuis qu'on a change de strat
+PASS : good
+NICK : good
+USER : good
+QUIT : segfault

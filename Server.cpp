@@ -939,7 +939,7 @@ void Server::cmdMode(std::string arg, type_sock client_socket)
 	else if (channel_name[0] != '#' || (modes[0] != '-' && modes[0] != '+')
 	|| (modes[1] != 'o' && modes[1] != 'i' && modes[1] != 't' && modes[1] != 'k' && modes[1] != 'l'))//syntax check
 		send(client_socket, "Usage : MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n", strlen("Usage : MODE <channel> {[+|-]l|o|k|i|t} [<parameter>]\n"), 0);
-	else if (rights_on_channel_name(client_socket, channel_name))
+	else if (!rights_on_channel_name(client_socket, channel_name))
 		send(client_socket, "You have no operator rights on this channel\n", strlen("You have no operator rights on this channel\n"), 0);
 	else
 	{
@@ -973,7 +973,7 @@ void	Server::limitManager(char mode, std::string channel_name, std::string limit
 {
 	// — l : Définir/supprimer la limite d’utilisateurs pour le canal
 	std::map<std::string, Channel*>::iterator it = _channels.find(channel_name);
-	if (it != _channels.end(), check_valid_limit(limit, MAX_CLIENTS))
+	if (it != _channels.end() && check_valid_limit(limit, MAX_CLIENTS))
 	{
 		if (mode == '+')
 			it->second->setLimit(atoi(limit.c_str()));
