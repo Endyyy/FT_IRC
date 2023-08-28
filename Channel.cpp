@@ -239,6 +239,7 @@ bool	Channel::removeUser(User *user)
 	if (user_it != _reg_users.end())
 	{
 		_reg_users.erase(user_it);
+		std::cout << "user removed from channel" << std::endl;
 		return (true);
 	}
 	return (false);
@@ -250,6 +251,7 @@ bool	Channel::removeInv(std::string const username)
 	if (user_it != _reg_inv.end())
 	{
 		_reg_inv.erase(user_it);
+		std::cout << "user removed from invitation list" << std::endl;
 		return (true);
 	}
 	return (false);

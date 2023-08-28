@@ -316,8 +316,6 @@ void Server::checkCommand(std::string input, type_sock client_socket)
 	stream >> cmd;
 	if (cmd == "QUIT" && input.size() == 4)
 		_death_note.push_back(client_socket);
-		// erase_one_user(client_socket);
-		// cmdQuit(client_socket);
 	else if (lvl < 3)
 		ask_for_login_credentials(input, client_socket, lvl);
 	else if (cmd.size())
@@ -338,8 +336,6 @@ void Server::checkCommand(std::string input, type_sock client_socket)
 			cmdTopic(input, client_socket);
 		else if (cmd == "NICK")
 			cmdNick(input, client_socket);
-		// else if (cmd == "QUIT")
-		// 	send(client_socket, "Usage : QUIT\n",strlen("Usage : QUIT\n"), 0);
 		else
 			send(client_socket, "Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, PART, QUIT.\n",\
 			strlen("Commands available : JOIN, PRIVMSG, INVITE, KICK, MODE, TOPIC, NICK, PART, QUIT.\n"), 0);
