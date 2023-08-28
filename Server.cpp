@@ -116,7 +116,6 @@ void	Server::run()
 				{
 					if (_active)
 					{
-						// std::string	input = recv_from_user(socket);
 						if (recv_from_user(socket))
 						{
 							std::string	input = _clients[socket]->get_inputStack();
@@ -173,7 +172,7 @@ type_sock	Server::get_incoming_socket()
 	socklen_t addrLength = sizeof(_address);
 	type_sock tmp_socket = accept(_serverSocket, (struct sockaddr *)&_address, &addrLength);
 	if (tmp_socket < 0)
-		throw (ERR_ACCEPTFAILURE());//////////comportement a definir
+		throw (ERR_ACCEPTFAILURE());
 	return (tmp_socket);
 }
 
@@ -488,7 +487,7 @@ bool Server::cmdPass(std::string input)//done
 	return (false);
 }
 
-bool Server::cmdNick(std::string input, type_sock client_socket)//done
+bool Server::cmdNick(std::string input, type_sock client_socket)// done
 {
 	std::stringstream	stream(input);
 	std::string			cmd;
@@ -526,7 +525,7 @@ bool Server::cmdNick(std::string input, type_sock client_socket)//done
 	return (true);
 }
 
-bool Server::cmdUser(std::string input, type_sock client_socket)//done
+bool Server::cmdUser(std::string input, type_sock client_socket)// done
 {
 	std::stringstream	stream(input);
 	std::string			cmd;
@@ -554,14 +553,18 @@ bool Server::cmdUser(std::string input, type_sock client_socket)//done
 	return (true);
 }
 
-void Server::cmdJoin(std::string input, type_sock client_socket)//tous les cas de figures possibles sont geres mais manque de dialogue sur les etapes de conclusion
+void Server::cmdJoin(std::string input, type_sock client_socket)// work in progress
 {
+	/////////////// implementer gestion des limites de membres a un channel
+	/////////////// separer l'arbre decisionnel
+	/////////////// revoir le fonctionnement d'invite dans channel et repercuter les modifs
+
 	std::stringstream	stream(input);
 	std::string			cmd;
 	std::string			channel_name;
 	std::string			key;
 	std::string			end;
-	int					success = 1;
+	int					success = 0;
 
 	stream >> cmd;
 	stream >> channel_name;
@@ -579,6 +582,7 @@ void Server::cmdJoin(std::string input, type_sock client_socket)//tous les cas d
 
 	if (key.size()) // password given
 	{
+
 		if (chan_it == _channels.end())// no channel, no password
 			send(client_socket, "There is no such channel. Abort.\n", strlen("There is no such channel. Abort.\n"), 0);
 		else if (!chan_it->second->get_flagPassword()) // password not required
@@ -616,20 +620,23 @@ void Server::cmdJoin(std::string input, type_sock client_socket)//tous les cas d
 
 	}
 
-	if (success > 1)
+	if (success > 1) // channel creation
 	{
 		_channels.insert(std::make_pair(channel_name, new Channel(channel_name, client_it->second)));
 		std::cout << "channel creation done in cmdJoin" << std::endl;
 	}
-	else if (success)
+	else if (success) // channel already existing
 	{
 		chan_it->second->addUser(client_it->second);
 		std::cout << "add user (if not existing already) done in cmdJoin" << std::endl;
 
 	}
 	chan_it = _channels.find(channel_name);
-	std::string user_join_message = ":" + client_it->second->get_nickname() + " JOIN " + channel_name + "\n";
-	chan_it->second->sendMessage(user_join_message, client_socket);
+	if (chan_it != _channels.end())
+	{
+		std::string user_join_message = ":" + client_it->second->get_nickname() + " JOIN " + channel_name + "\n";
+		chan_it->second->sendMessage(user_join_message, client_socket);
+	}
 }
 
 void Server::cmdKick(std::string arg, type_sock client_socket)
@@ -782,15 +789,15 @@ void Server::cmdInvite(std::string arg, type_sock client_socket)
 		send(client_socket, "Target does not exist !\n", strlen("Target does not exist !\n"), 0);
 		return ;
 	}
-	if (_channels[channel_name]->get_flagInvite())
-	{
-		if (!(_channels[channel_name]->check_if_ope(_clients[client_socket])))
-		{
-			send(client_socket, "You don't have the right to use this command !\n", \
-			strlen("You don't have the right to use this command !\n"), 0);
-			return ;
-		}
-	}
+	// if (_channels[channel_name]->get_flagInvite())
+	// {
+	// 	if (!(_channels[channel_name]->check_if_ope(_clients[client_socket])))
+	// 	{
+	// 		send(client_socket, "You don't have the right to use this command !\n", \
+	// 		strlen("You don't have the right to use this command !\n"), 0);
+	// 		return ;
+	// 	}
+	// }
 	_channels[channel_name]->addUser(_clients[targetSocket]);
 	std::string invite_message = "You were invited by " + _clients[client_socket]->get_nickname() + " on " + channel_name + "\n";
 	send(targetSocket ,invite_message.c_str(), invite_message.size(), 0);
@@ -1049,9 +1056,9 @@ const char *Server::ERR_LISTENINGFAILURE::what() const throw()	{ return "Socket 
 
 const char *Server::ERR_SELECTFAILURE::what() const throw()		{ return "Select error"; }
 
-const char *Server::ERR_ACCEPTFAILURE::what() const throw()		{ return "Accept error"; }
-
 //-----------------
+
+const char *Server::ERR_ACCEPTFAILURE::what() const throw()		{ return "Accept error"; }
 
 const char *Server::ERR_ALREADYREGISTRED::what() const throw()	{ return ("Already registered"); }
 
