@@ -8,7 +8,7 @@ Channel& Channel::operator=(Channel const& source) { (void)source; return (*this
 ///////////////////////////////////////////////////////////////////////////////
 
 Channel::Channel(const std::string& name, User *user) :
-_name(name), _limit(INT_MAX), _flagInvite(false), _flagPassword(false), _flagTopic(false)
+_name(name), _limit(NOT_SET), _flagInvite(false), _flagPassword(false), _flagTopic(false)
 {
 	addOpe(user);
 	std::cout << "New channel \"" << _name << "\" is created" << std::endl;
@@ -123,12 +123,19 @@ bool	Channel::check_if_empty() const
 	return (false);
 }
 
+bool	Channel::check_if_space_available()
+{
+	if (_limit == NOT_SET || user_counter() < _limit)
+		return (true);
+	return (false);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Methods
 
 bool	Channel::addUser(User *user)
 {
-	if (!check_if_user(user))
+	if (!check_if_user(user) && check_if_space_available())
 	{
 		std::cout << "addUser because not find in reg_users" << std::endl;
 		_reg_users.push_back(user);
@@ -140,7 +147,6 @@ bool	Channel::addUser(User *user)
 
 bool	Channel::addOpe(User *user)
 {
-	_reg_users.push_back(user);
 	if (!check_if_ope(user))
 	{
 		_reg_ope.push_back(user);
@@ -172,7 +178,6 @@ void	Channel::unset_flagPassword()
 	set_password("");
 }
 
-
 void Channel::sendMessage(const std::string& message, type_sock sender_socket)
 {
 	for (std::vector<User*>::iterator it = _reg_users.begin(); it != _reg_users.end(); it++)
@@ -180,6 +185,14 @@ void Channel::sendMessage(const std::string& message, type_sock sender_socket)
 		if ((*it)->get_userSocket() != sender_socket)
 			send((*it)->get_userSocket(), message.c_str(), message.size(), 0);
 	}
+}
+
+int	Channel::user_counter()
+{
+	int i = 0;
+	for (std::vector<User*>::iterator it = _reg_users.begin(); it != _reg_users.end(); it++)
+		i++;
+	return (i);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

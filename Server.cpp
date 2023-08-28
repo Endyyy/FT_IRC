@@ -556,7 +556,6 @@ bool Server::cmdUser(std::string input, type_sock client_socket)// done
 void Server::cmdJoin(std::string input, type_sock client_socket)// work in progress
 {
 	/////////////// implementer gestion des limites de membres a un channel
-	/////////////// separer l'arbre decisionnel
 	/////////////// revoir le fonctionnement d'invite dans channel et repercuter les modifs
 
 	std::stringstream	stream(input);

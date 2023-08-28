@@ -20,6 +20,8 @@
 # include <string>
 # include <vector>
 
+# define NOT_SET -1
+
 class Channel
 {
 	private:
@@ -64,6 +66,7 @@ class Channel
 		bool	check_if_user(User* user) const;
 		bool	check_if_inv(std::string const username) const;
 		bool	check_if_empty() const;
+		bool	check_if_space_available();
 
 		// Methods
 		bool	addUser(User *user);
@@ -72,6 +75,7 @@ class Channel
 		void	unset_flagInvite();
 		void	unset_flagPassword();
 		void	sendMessage(const std::string& message, type_sock sender_socket);
+		int		user_counter();
 
 		// Cleaners
 		void	clear_topic();
