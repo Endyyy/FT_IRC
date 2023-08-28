@@ -315,7 +315,8 @@ void Server::checkCommand(std::string input, type_sock client_socket)
 
 	stream >> cmd;
 	if (cmd == "QUIT" && input.size() == 4)
-		erase_one_user(client_socket);
+		_death_note.push_back(client_socket);
+		// erase_one_user(client_socket);
 		// cmdQuit(client_socket);
 	else if (lvl < 3)
 		ask_for_login_credentials(input, client_socket, lvl);
@@ -397,18 +398,18 @@ void	Server::reset_fd_set()
 	}
 }
 
-void	Server::erase_one_user(type_sock userSocket)//////////// a controler
+void	Server::erase_one_user(type_sock userSocket)
 {
 	std::map<type_sock, User*>::iterator it = _clients.find(userSocket);
 	if (it != _clients.end())
 	{
 		manhunt(it->second);
+		send(userSocket, "Press 'Enter' to leave\n", strlen("Press 'Enter' to leave\n"), 0);
 		FD_CLR(userSocket, &_readfds);
 		close(userSocket);
 		delete it->second;
 		it->second = NULL;
 		_clients.erase(it);
-		std::cout << "TEST" << std::endl;
 	}
 }
 
