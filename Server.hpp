@@ -103,6 +103,8 @@ class Server
 		void	keyManager(char mode, std::string channel_name, std::string password);
 		void	inviteManager(char mode, std::string channel_name);
 		void	topicManager(char mode, std::string channel_name);
+		int		join_with_key(type_sock client_socket, std::string channel_name, std::string key);
+		int		join_without_key(type_sock client_socket, std::string channel_name);
 
 		//ERROR_MSGS
 

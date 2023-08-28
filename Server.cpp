@@ -581,44 +581,9 @@ void Server::cmdJoin(std::string input, type_sock client_socket)// work in progr
 	std::map<type_sock, User*>::iterator client_it = _clients.find(client_socket);
 
 	if (key.size()) // password given
-	{
-
-		if (chan_it == _channels.end())// no channel, no password
-			send(client_socket, "There is no such channel. Abort.\n", strlen("There is no such channel. Abort.\n"), 0);
-		else if (!chan_it->second->get_flagPassword()) // password not required
-			send(client_socket, "No password required for this channel. Abort.\n", strlen("No password required for this channel. Abort.\n"), 0);
-		else if (chan_it->second->get_flagInvite())// invitation required
-		{
-			if (!chan_it->second->check_if_inv(client_it->second->get_nickname())) // not found on invitation list
-				send(client_socket, "You cannot join this channel without being invitated to. Abort.\n", strlen("You cannot join this channel without being invitated to. Abort.\n"), 0);
-			else if (key != chan_it->second->get_password()) // invited but wrong password
-				send(client_socket, "Wrong password. Abort.\n", strlen("Wrong password. Abort.\n"), 0);
-			else // password ok, invitation ok
-				success = 1;
-		}
-		else if (key != chan_it->second->get_password()) // password required but not invitation
-			send(client_socket, "Wrong password. Abort.\n", strlen("Wrong password. Abort.\n"), 0);
-		else // password only ok
-			success = 1;
-
-	}
+		success = join_with_key(client_socket, channel_name, key);
 	else // no password given
-	{
-		if (chan_it == _channels.end())// no channel, no password
-			success = 2;
-		else if (chan_it->second->get_flagPassword()) // password required
-			send(client_socket, "Password required for this channel. Abort.\n", strlen("Password required for this channel. Abort.\n"), 0);
-		else if (chan_it->second->get_flagInvite())// invitation only required
-		{
-			if (!chan_it->second->check_if_inv(client_it->second->get_nickname())) // not invited
-				send(client_socket, "You cannot join this channel without being invitated to. Abort.\n", strlen("You cannot join this channel without being invitated to. Abort.\n"), 0);
-			else // invited
-				success = 1;
-		}
-		else
-			success = 1; // no password neither invitation required
-
-	}
+		success = join_without_key(client_socket, channel_name);
 
 	if (success > 1) // channel creation
 	{
@@ -1045,6 +1010,53 @@ void	Server::topicManager(char mode, std::string channel_name)
 			chan_it->second->set_flagTopic(false);
 	}
 }
+
+int	Server::join_with_key(type_sock client_socket, std::string channel_name, std::string key)
+{
+	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
+	std::map<type_sock, User*>::iterator client_it = _clients.find(client_socket);
+
+	if (chan_it == _channels.end())// no channel, no password
+		send(client_socket, "There is no such channel. Abort.\n", strlen("There is no such channel. Abort.\n"), 0);
+	else if (!chan_it->second->get_flagPassword()) // password not required
+		send(client_socket, "No password required for this channel. Abort.\n", strlen("No password required for this channel. Abort.\n"), 0);
+	else if (chan_it->second->get_flagInvite())// invitation required
+	{
+		if (!chan_it->second->check_if_inv(client_it->second->get_nickname())) // not found on invitation list
+			send(client_socket, "You cannot join this channel without being invitated to. Abort.\n", strlen("You cannot join this channel without being invitated to. Abort.\n"), 0);
+		else if (key != chan_it->second->get_password()) // invited but wrong password
+			send(client_socket, "Wrong password. Abort.\n", strlen("Wrong password. Abort.\n"), 0);
+		else // password ok, invitation ok
+			return (1);
+	}
+	else if (key != chan_it->second->get_password()) // password required but not invitation
+		send(client_socket, "Wrong password. Abort.\n", strlen("Wrong password. Abort.\n"), 0);
+	else // password only ok
+		return (1);
+	return (0);
+}
+
+int	Server::join_without_key(type_sock client_socket, std::string channel_name)
+{
+	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
+	std::map<type_sock, User*>::iterator client_it = _clients.find(client_socket);
+
+	if (chan_it == _channels.end())// no channel, no password
+		return (2);
+	else if (chan_it->second->get_flagPassword()) // password required
+		send(client_socket, "Password required for this channel. Abort.\n", strlen("Password required for this channel. Abort.\n"), 0);
+	else if (chan_it->second->get_flagInvite())// invitation only required
+	{
+		if (!chan_it->second->check_if_inv(client_it->second->get_nickname())) // not invited
+			send(client_socket, "You cannot join this channel without being invitated to. Abort.\n", strlen("You cannot join this channel without being invitated to. Abort.\n"), 0);
+		else // invited
+			return (1);
+	}
+	else
+		return (1); // no password neither invitation required
+	return (0);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ERROR_MSGS
