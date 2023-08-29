@@ -52,19 +52,22 @@ class Server
 		std::string const	get_serverPassword() const;
 
 		// Methods
-		void		bind_socket_to_address();
-		void		start_listening();
-		void		run();
-		static void	ctrlC_behaviour(int signal);
-		void		waiting_for_activity();
-		type_sock	get_incoming_socket();
-		void		add_new_user(type_sock userSocket);
-		bool		recv_from_user(type_sock userSocket);
-		void		add_empty_channels_to_closing_list();
-		std::string get_clientDatas(type_sock socket);
-		void		ask_for_login_credentials(std::string arg, type_sock client_socket, int lvl);
-		int			findSocketFromNickname(std::string target);
-		void		checkCommand(std::string arg, type_sock client_socket);
+		void						bind_socket_to_address();
+		void						start_listening();
+		void						run();
+		static void					ctrlC_behaviour(int signal);
+		void						waiting_for_activity();
+		type_sock					get_incoming_socket();
+		void						add_new_user(type_sock userSocket);
+		bool						recv_from_user(type_sock userSocket);
+		void						add_empty_channels_to_closing_list();
+		std::string 				get_clientDatas(type_sock socket);
+		void						ask_for_login_credentials(std::string arg, type_sock client_socket, int lvl);
+		int							findSocketFromNickname(std::string target);
+		void						checkCommand(std::string arg, type_sock client_socket);
+		void						manageInputForSic(std::string input, type_sock client_socket);
+		std::vector<std::string> 	splitString(std::string input);
+		bool						IsSicInput(std::string input);
 
 		//Checkers
 		bool	check_activity(type_sock socket);

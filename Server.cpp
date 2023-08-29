@@ -247,8 +247,59 @@ std::string Server::get_clientDatas(type_sock socket)
 	return (str);
 }
 
+std::vector<std::string> Server::splitString(std::string input)
+{
+    std::vector<std::string> tokens;
+ 
+    std::stringstream ss(input);
+    std::string token;
+    while (std::getline(ss, token, '\n'))
+        tokens.push_back(token);
+    return tokens;
+}
+
+void Server::manageInputForSic(std::string input, type_sock client_socket)
+{
+	std::string user;
+	std::vector<std::string> tokens;
+
+	if (input.substr(0,4) != "PASS") //PASS lol\r\nNICK yo\r\nUSER yo localhost 127.0.0.1 :yo\r
+	{
+		send(client_socket, "Please relaunch using : ./sic -h 127.0.0.1 -p [port] -k [pass] -n [nickname]\n", \
+		strlen("Please relaunch using : ./sic -h 127.0.0.1 -p [port] -k [pass] -n [nickname]\n"), 0);
+		return ;
+	}
+	else
+	{
+		input.erase(std::remove(input.begin(), input.end(), '\r'), input.end());
+		tokens = splitString(input);
+		std::stringstream stream(tokens[2]);
+		std::string tmp;
+		stream >> user;
+		user += " ";
+		stream >> tmp;
+		user += tmp;
+	}
+	if (cmdPass(tokens[0]) && cmdNick(tokens[1], client_socket) && cmdUser(user, client_socket))
+	{
+		std::cout << "Registration succesful" << std::endl;
+		send(client_socket, "Password granted !\nYou are now one of us !\n", strlen("Password granted !\nYou are now one of us !\n"), 0);
+	}
+	else
+	{
+		std::cout << "tokens[0] : " << tokens[0] << std::endl;
+		std::cout << "tokens[1] : " << tokens[1] << std::endl;
+		std::cout << "user : " << user << std::endl;
+		send(client_socket, "Please relaunch using : ./sic -h 127.0.0.1 -p [port] -k [pass] -n [nickname]\n", \
+		strlen("Please relaunch using : ./sic -h 127.0.0.1 -p [port] -k [pass] -n [nickname]\n"), 0);
+		return ;
+	}
+	_clients[client_socket]->set_userState(3);
+}
+
 void	Server::ask_for_login_credentials(std::string input, type_sock client_socket, int lvl)
 {
+	std::cout << "input : " << input << std::endl;
 	if (lvl == 0)
 	{
 		std::cout << "user is lvl 0" << std::endl;
@@ -270,7 +321,7 @@ void	Server::ask_for_login_credentials(std::string input, type_sock client_socke
 		{
 			_clients[client_socket]->set_userState(2);
 			std::cout << "user has become lvl 2" << std::endl;
-			send(client_socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+			send(client_socket, "USER <username>\n", strlen("USER <username>\n"), 0);
 		}
 		else
 			send(client_socket, "NICK <nickname>\n", strlen("NICK <nickname>\n"), 0);
@@ -287,7 +338,7 @@ void	Server::ask_for_login_credentials(std::string input, type_sock client_socke
 			send(client_socket, "You are now one of us !\n", strlen("You are now one of us !\n"), 0);
 		}
 		else
-			send(client_socket, "USER :<username>\n", strlen("USER :<username>\n"), 0);
+			send(client_socket, "USER <username>\n", strlen("USER <username>\n"), 0);
 			//ask for a valid username
 	}
 }
@@ -307,6 +358,16 @@ type_sock	Server::findSocketFromNickname(std::string target)
 	return (targetSocket);
 }
 
+bool	Server::IsSicInput(std::string input)
+{
+	for (int i = 0; input[i]; i++)
+	{
+		if (input[i] == '\r')
+			return(true);
+	}
+	return (false);
+}
+
 void Server::checkCommand(std::string input, type_sock client_socket)
 {
 	int					lvl = _clients[client_socket]->get_userState();
@@ -317,7 +378,12 @@ void Server::checkCommand(std::string input, type_sock client_socket)
 	if (cmd == "QUIT" && (input.size() == 4 || input.size() == 5))
 		_death_note.push_back(client_socket);
 	else if (lvl < 3)
-		ask_for_login_credentials(input, client_socket, lvl);
+	{
+		if (IsSicInput(input))
+			manageInputForSic(input, client_socket);
+		else
+			ask_for_login_credentials(input, client_socket, lvl);
+	}
 	else if (cmd.size())
 	{
 		if (cmd == "JOIN")
@@ -479,7 +545,6 @@ bool Server::cmdPass(std::string input)
 	std::string			end;
 
 	std::cout << "cmdPass" << std::endl;
-	std::cout << "input : " << input << std::endl;
 
 	stream >> cmd;
 	stream >> password;
@@ -543,7 +608,7 @@ bool Server::cmdUser(std::string input, type_sock client_socket)
 	stream >> username;
 	stream >> end;
 
-	if (cmd.size() == 0 || username.size() < 2 || username[0] != ':' || end.size() != 0 || cmd != "USER")
+	if (cmd.size() == 0 || username.size() < 1 || end.size() != 0 || cmd != "USER")
 		return (false);
 
 	username.erase(username.begin());
