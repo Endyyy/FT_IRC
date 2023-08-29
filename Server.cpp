@@ -596,12 +596,14 @@ void Server::cmdJoin(std::string input, type_sock client_socket)// work in progr
 	else if (success) // channel already existing
 	{
 		if (chan_it->second->addUser(client_it->second))
-			send(client_it->second->get_userSocket(), "You have become member of the channel !\n", strlen("You have become member of the channel !\n"), 0);
-		std::cout << "add user (if not existing already) done in cmdJoin" << std::endl;
-		if (chan_it != _channels.end())
 		{
-			std::string user_join_message = ":" + client_it->second->get_nickname() + " JOIN " + channel_name + "\n";
-			chan_it->second->sendMessage(user_join_message, client_socket);
+			send(client_it->second->get_userSocket(), "You have become member of the channel !\n", strlen("You have become member of the channel !\n"), 0);
+			std::cout << "add user (if not existing already) done in cmdJoin" << std::endl;
+			if (chan_it != _channels.end())
+			{
+				std::string user_join_message = ":" + client_it->second->get_nickname() + " JOIN " + channel_name + "\n";
+				chan_it->second->sendMessage(user_join_message, client_socket);
+			}
 		}
 	}
 }
@@ -945,6 +947,8 @@ void Server::cmdMode(std::string arg, type_sock client_socket)
 		}
 		else
 		{
+			if (modes[1] == 'l')
+				limitManager(modes[0], channel_name, "1");
 			if (modes[1] == 't')
 				topicManager(modes[0], channel_name);
 			if (modes[1] == 'i')
@@ -1000,7 +1004,10 @@ void	Server::keyManager(char mode, std::string channel_name, std::string passwor
 			it->second->set_password(password);
 		}
 		else
-			it->second->unset_flagPassword();
+		{
+			it->second->set_flagPassword(false);
+			it->second->set_password("");
+		}
 	}
 }
 

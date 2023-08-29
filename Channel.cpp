@@ -207,6 +207,7 @@ int	Channel::user_counter()
 	int i = 0;
 	for (std::vector<User*>::iterator it = _reg_users.begin(); it != _reg_users.end(); it++)
 		i++;
+	std::cout << "USER_COUNTER I = " << i << std::endl;
 	return (i);
 }
 
