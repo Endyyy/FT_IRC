@@ -782,9 +782,11 @@ void Server::cmdInvite(std::string arg, type_sock client_socket) //DONE
 		strlen("You don't have the right to use this command !\n"), 0);
 		return ;
 	}
-	_channels[channel_name]->addUser(_clients[targetSocket]);
-	std::string invite_message = "You were invited by " + _clients[client_socket]->get_nickname() + " on " + channel_name + "\n";
-	send(targetSocket ,invite_message.c_str(), invite_message.size(), 0);
+	if (_channels[channel_name]->addUser(_clients[targetSocket]))
+	{
+		std::string invite_message = "You were invited by " + _clients[client_socket]->get_nickname() + " on " + channel_name + "\n";
+		send(targetSocket ,invite_message.c_str(), invite_message.size(), 0);
+	}
 }
 
 void Server::cmdTopic(std::string arg, type_sock client_socket) //DONE
