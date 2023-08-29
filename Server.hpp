@@ -1,28 +1,25 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
+
 # include "tools.hpp"
 # include "User.hpp"
 # include "Channel.hpp"
 
 # include <algorithm>
 # include <arpa/inet.h>
-# include <cctype>
-# include <climits>
 # include <csignal>
-# include <cstdio>
-# include <cstdlib>
 # include <cstring>
 # include <iostream>
 # include <map>
 # include <sstream>
-# include <stdexcept>
-# include <string>
 # include <vector>
-
 
 # define MAX_CLIENTS 100
 # define BUFFER_SIZE 1024
+# define NOT_SET -1
+
+typedef int type_sock;
 
 class Server
 {

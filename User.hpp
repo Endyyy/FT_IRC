@@ -1,29 +1,14 @@
 #ifndef USER_HPP
 # define USER_HPP
 
-# include "tools.hpp"
-
-
-
-# include <algorithm>
-# include <arpa/inet.h>
-# include <cctype>
-# include <climits>
-# include <csignal>
-# include <cstdio>
-# include <cstdlib>
-# include <cstring>
 # include <iostream>
-# include <map>
-# include <sstream>
-# include <stdexcept>
-# include <string>
-# include <vector>
+
+typedef int type_sock;
 
 class User
 {
 	private:
-		int const	_userSocket;
+		type_sock const	_userSocket;
 		std::string	_nickname;
 		std::string	_username;
 		int			_userState;
