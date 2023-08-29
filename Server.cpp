@@ -314,7 +314,7 @@ void Server::checkCommand(std::string input, type_sock client_socket)
 	std::string			cmd;
 
 	stream >> cmd;
-	if (cmd == "QUIT" && input.size() == 4)
+	if (cmd == "QUIT" && (input.size() == 4 || input.size() == 5))
 		_death_note.push_back(client_socket);
 	else if (lvl < 3)
 		ask_for_login_credentials(input, client_socket, lvl);
