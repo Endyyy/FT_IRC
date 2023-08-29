@@ -74,10 +74,20 @@ ORDRE DES OPERATIONS
 note :
 - on ne peut faire aucun while en dehors du principal : ça bloquerait le server en attente d'un input d'un client et ça ferait foirer le sujet
 
-A CORRIGER (28/08, 12h):
+A CORRIGER (29/08, 10h):
 
 PASS : good
 NICK : good
 USER : good
-JOIN : JOIN #test #test
-QUIT : segfault
+JOIN : JOIN affiche aux utilisateurs qu'un client est entré meme si le channel est full et que le client n'est pas rentré dans le channel
+TOPIC : good
+PART : good
+KICK : good
+INVITE : good
+PRIVMSG : good
+QUIT : good
+MODE :  - +/-i : good
+		- +/-t : good
+		- +/-o : message a l'utilisateur qui devient operateur a implementer
+		- +/-k : le -k ne marche pas
+		- +/-l : le -l ne marche pas
