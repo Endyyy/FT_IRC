@@ -618,7 +618,7 @@ void Server::cmdKick(std::string arg, type_sock client_socket) //DONE
 
 	if (!(stream >> cmd) || cmd != "KICK") //Check commande
 		return ;
-	if (!(stream >> channel_name))         //Check nom du channel
+	if (!(stream >> channel_name))		 //Check nom du channel
 	{
 		send(client_socket, "KICK <#channel_name> <nickname> [<comment>]\n", strlen("KICK <#channel_name> <nickname> [<comment>]\n"), 0);
 		return ;
@@ -628,12 +628,12 @@ void Server::cmdKick(std::string arg, type_sock client_socket) //DONE
 		send(client_socket, "KICK <#channel_name> <nickname> [<comment>]\n", strlen("KICK <#channel_name> <nickname> [<comment>]\n"), 0);
 		return ;
 	}
-	if (!(stream >> banned_user))                           //Check target
+	if (!(stream >> banned_user))						   //Check target
 	{
 		send(client_socket, "KICK <#channel_name> <nickname> [<comment>]\n", strlen("KICK <#channel_name> <nickname> [<comment>]\n"), 0);
 		return ;
 	}
-	if (stream)                                            //Recupere message s'il y'en a un
+	if (stream)											//Recupere message s'il y'en a un
 	{
 		stream >> std::ws;
 		std::getline(stream, ban_msg);
@@ -644,13 +644,13 @@ void Server::cmdKick(std::string arg, type_sock client_socket) //DONE
 		strlen("You don't have the right to use this command !\n"), 0);
 		return ;
 	}
-	if (_channels.find(channel_name) == _channels.end())                  //Check si channel existe
+	if (_channels.find(channel_name) == _channels.end())				  //Check si channel existe
 	{
 		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
 		return ;
 	}
 	type_sock targetSocket = findSocketFromNickname(banned_user);
-	if (targetSocket == -1)                                               //Check si target existe
+	if (targetSocket == -1)											   //Check si target existe
 	{
 		send(client_socket, "Target does not exist !\n", strlen("Target does not exist !\n"), 0);
 		return ;
@@ -666,14 +666,14 @@ void Server::cmdKick(std::string arg, type_sock client_socket) //DONE
 		return ;
 	}
 	_channels[channel_name]->removeUser(_clients[targetSocket]);
-	if (!ban_msg.empty())                                        //Check si pas de message specifique
+	if (!ban_msg.empty())										//Check si pas de message specifique
 	{
 		std::string ban_message_plus = channel_name + " :You were kicked by " + _clients[client_socket]->get_nickname() + " (" + ban_msg + ")\n";
 		send(targetSocket, ban_message_plus.c_str(), ban_message_plus.size(), 0);
 		std::string ban_chan_message_plus = channel_name + " :" + _clients[targetSocket]->get_nickname() + " was kicked by " + _clients[client_socket]->get_nickname() + " (" + ban_msg + ")\n";
 		_channels[channel_name]->sendMessage(ban_chan_message_plus, client_socket);
 	}
-	else                                                         //Envoi le message specifique
+	else														 //Envoi le message specifique
 	{
 		std::string ban_message = channel_name + " :You were kicked by " + _clients[client_socket]->get_nickname() + "\n";
 		send(targetSocket, ban_message.c_str(), ban_message.size(), 0);
@@ -691,7 +691,7 @@ void Server::cmdPart(std::string arg, type_sock client_socket) //DONE
 
 	if (!(stream >> cmd) || cmd != "PART") //Check commande
 		return ;
-	if (!(stream >> channel_name))        //Check nom du channel
+	if (!(stream >> channel_name))		//Check nom du channel
 	{
 		send(client_socket, "PART <#channel_name>\n", strlen("PART <#channel_name>\n"), 0);
 		return ;
@@ -736,7 +736,7 @@ void Server::cmdInvite(std::string arg, type_sock client_socket) //DONE
 
 	if (!(stream >> cmd) || cmd != "INVITE")  //Check commande
 		return ;
-	if (!(stream >> channel_name))            //Check nom du channel
+	if (!(stream >> channel_name))			//Check nom du channel
 	{
 		send(client_socket, "INVITE <#channel_name> <nickname>\n", strlen("INVITE <#channel_name> <nickname>\n"), 0);
 		return ;
@@ -746,7 +746,7 @@ void Server::cmdInvite(std::string arg, type_sock client_socket) //DONE
 		send(client_socket, "INVITE <#channel_name> <nickname>\n", strlen("INVITE <#channel_name> <nickname>\n"), 0);
 		return ;
 	}
-	if (!(stream >> invited_user))                           //Check 3eme arg
+	if (!(stream >> invited_user))						   //Check 3eme arg
 	{
 		send(client_socket, "INVITE <#channel_name> <nickname>\n", strlen("INVITE <#channel_name> <nickname>\n"), 0);
 		return ;
@@ -760,13 +760,13 @@ void Server::cmdInvite(std::string arg, type_sock client_socket) //DONE
 			return ;
 		}
 	}
-	if (_channels.find(channel_name) == _channels.end())     //Check si channel existe
+	if (_channels.find(channel_name) == _channels.end())	 //Check si channel existe
 	{
 		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
 		return ;
 	}
 	type_sock targetSocket = findSocketFromNickname(invited_user);
-	if (targetSocket == -1)                                  //Check si la target existe
+	if (targetSocket == -1)								  //Check si la target existe
 	{
 		send(client_socket, "Target does not exist !\n", strlen("Target does not exist !\n"), 0);
 		return ;
@@ -798,7 +798,7 @@ void Server::cmdTopic(std::string arg, type_sock client_socket) //DONE
 
 	if (!(stream >> cmd) || cmd != "TOPIC") 	//Check nom de la commande
 		return ;
-	if (!(stream >> channel_name))              //Check nom du channel
+	if (!(stream >> channel_name))			  //Check nom du channel
 	{
 		send(client_socket, "TOPIC <#channel_name> :<topic>\n", strlen("TOPIC <#channel_name> :<topic>\n"), 0);
 		return ;
@@ -867,7 +867,7 @@ void Server::cmdPrivMsg(std::string arg, type_sock client_socket) //DONE
 
 	if (!(stream >> cmd) || cmd != "PRIVMSG") 	//Check nom de la commande
 		return ;
-	if (!(stream >> target))                    //Check s'il y'a une target
+	if (!(stream >> target))					//Check s'il y'a une target
 	{
 		send(client_socket, "PRIVMSG <target> :<message>\n", strlen("PRIVMSG <target> :<message>\n"), 0);
 		return ;
@@ -882,14 +882,14 @@ void Server::cmdPrivMsg(std::string arg, type_sock client_socket) //DONE
 		send(client_socket, "PRIVMSG <target> :<message>\n", strlen("PRIVMSG <target> :<message>\n"), 0);
 		return ;
 	}
-	if (target[0] == '#')                    //Check si la target est un channel
+	if (target[0] == '#')					//Check si la target est un channel
 	{
 		if (target.size() == 1 || _channels.find(target) == _channels.end())  //Check si channel existe
 		{
 			send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
 			return ;
 		}
-		if (!(_channels[target]->check_if_user(_clients[client_socket])) && !(_channels[target]->check_if_ope(_clients[client_socket])))    //Check si sur le channel
+		if (!(_channels[target]->check_if_user(_clients[client_socket])) && !(_channels[target]->check_if_ope(_clients[client_socket])))	//Check si sur le channel
 		{
 			send(client_socket, "You're not registered in the channel !\n", strlen("You're not registered in the channel !\n"), 0);
 			return ;
@@ -897,7 +897,7 @@ void Server::cmdPrivMsg(std::string arg, type_sock client_socket) //DONE
 		std::string priv_message_chan = target + " <" + _clients[client_socket]->get_nickname() + "> " + message + "\n";
 		_channels[target]->sendMessage(priv_message_chan, client_socket);
 	}
-	else                                                                                            //Sinon message vers un user
+	else																							//Sinon message vers un user
 	{
 		std::string priv_message = "<" + _clients[client_socket]->get_nickname() + "> " + message + "\n";
 		type_sock targetSocket = findSocketFromNickname(target);
@@ -1090,78 +1090,13 @@ int	Server::join_without_key(type_sock client_socket, std::string channel_name)
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ERROR_MSGS
-const char *Server::ERR_INVALIDSOCKET::what() const throw()		{ return "Error creating socket"; }
+const char *Server::ERR_ACCEPTFAILURE::what() const throw()		{ return "Accept error"; }
 
 const char *Server::ERR_BINDFAILURE::what() const throw()		{ return "Failed to bind socket to address"; }
+
+const char *Server::ERR_INVALIDSOCKET::what() const throw()		{ return "Error creating socket"; }
 
 const char *Server::ERR_LISTENINGFAILURE::what() const throw()	{ return "Socket failed to start listening"; }
 
 const char *Server::ERR_SELECTFAILURE::what() const throw()		{ return "Select error"; }
-
-//-----------------
-
-const char *Server::ERR_ACCEPTFAILURE::what() const throw()		{ return "Accept error"; }
-
-const char *Server::ERR_ALREADYREGISTRED::what() const throw()	{ return ("Already registered"); }
-
-const char *Server::ERR_CANNOTSENDTOCHAN::what() const throw()	{ return ("<channel name> :Cannot send to channel"); }
-
-const char *Server::ERR_CHANOPRIVSNEEDED::what() const throw()	{ return ("You're not channel operator"); }
-
-const char *Server::ERR_ERRONEUSNICKNAME::what() const throw()	{ return ("Erroneous nickname"); }
-
-const char *Server::ERR_KEYSET::what() const throw()			{ return ("<channel> :Channel key already set"); }
-
-const char *Server::ERR_NEEDMOREPARAMS::what() const throw()	{ return ("Need more params"); }
-
-const char *Server::ERR_NICKNAMEINUSE::what() const throw()		{ return ("Nickname is already in use"); }
-
-const char *Server::ERR_NOLOGIN::what() const throw()			{ return ("<user> :User not logged in"); }
-
-const char *Server::ERR_NONICKNAMEGIVEN::what() const throw()	{ return ("No nickname given"); }
-
-const char *Server::ERR_NORECIPIENT::what() const throw()		{ return ("No recipient given (<command>)"); }
-
-const char *Server::ERR_NOSUCHCHANNEL::what() const throw()		{ return ("No such channel"); }
-
-const char *Server::ERR_NOSUCHNICK::what() const throw()		{ return ("No such nick/channel"); }
-
-const char *Server::ERR_NOTEXTTOSEND::what() const throw()		{ return (":No text to send"); }
-
-const char *Server::ERR_NOTONCHANNEL::what() const throw()		{ return ("You're not on that channel"); }
-
-const char *Server::ERR_NOTOPLEVEL::what() const throw()		{ return ("<mask> :No toplevel domain specified"); }
-
-const char *Server::ERR_TOOMANYTARGET::what() const throw()		{ return ("<target> :Duplicate recipients. No message delivered"); }
-
-const char *Server::ERR_USERONCHANNEL::what() const throw()		{ return ("<user> <channel> :is already on channel"); }
-
-const char *Server::ERR_UNKNOWNMODE::what() const throw()		{ return ("<char> :is unknown mode char to me"); }
-
-const char *Server::ERR_USERSDONTMATCH::what() const throw()	{ return (":Cant change mode for other users"); }
-
-const char *Server::ERR_UMODEUNKNOWNFLAG::what() const throw()	{ return (":Unknown MODE flag"); }
-
-const char *Server::ERR_WILDTOPLEVEL::what() const throw()		{ return ("<mask> :Wildcard in toplevel domain"); }
-
-//-----------------
-
-const char *Server::RPL_AWAY::what() const throw()				{ return ("<nick> :<away message>"); }
-
-const char *Server::RPL_BANLIST::what() const throw()			{ return ("<channel> <banid>"); }
-
-const char *Server::RPL_CHANNELMODEIS::what() const throw()		{ return ("<channel> <mode> <mode params>"); }
-
-const char *Server::RPL_ENDOFBANLIST::what() const throw()		{ return ("<channel> :End of channel ban list"); }
-
-const char *Server::RPL_INVITING::what() const throw()			{ return ("<channel> <nick>"); }
-
-const char *Server::RPL_NOTOPIC::what() const throw()			{ return ("<channel> :No topic is set"); }
-
-const char *Server::RPL_SUMMONING::what() const throw()			{ return ("<user> :Summoning user to IRC"); }
-
-const char *Server::RPL_TOPIC::what() const throw()				{ return ("<channel> :<topic>"); }
-
-const char *Server::RPL_UMODEIS::what() const throw()			{ return ("<user mode string>"); }
-
 ////////////////////////////////////////////////////////////////////////////////
