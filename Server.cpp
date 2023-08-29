@@ -951,10 +951,14 @@ void Server::cmdMode(std::string arg, type_sock client_socket)
 		{
 			if (modes[1] == 'l')
 				limitManager(modes[0], channel_name, "1");
-			if (modes[1] == 't')
-				topicManager(modes[0], channel_name);
-			if (modes[1] == 'i')
+			else if (modes[1] == 'k')
+				keyManager(modes[0], channel_name, "");
+			else if (modes[1] == 'i')
 				inviteManager(modes[0], channel_name);
+			else if (modes[1] == 't')
+				topicManager(modes[0], channel_name);
+			else
+				send(client_socket, "Usage : MODE <channel> {-]l|k|i|t}\n", strlen("Usage : MODE <channel> {-]l|k|i|t}\n"), 0);
 		}
 		if ((modes[1] == 't' || modes[1] == 'i') && parameter.size() != 0)
 				send(client_socket, "Usage : MODE <channel> {[+|-]t|i}\n", strlen("Usage : MODE <channel> {[+|-]t|i}\n"), 0);
@@ -1008,7 +1012,7 @@ void	Server::keyManager(char mode, std::string channel_name, std::string passwor
 		else
 		{
 			it->second->set_flagPassword(false);
-			it->second->set_password("");
+			it->second->set_password(password);
 		}
 	}
 }
