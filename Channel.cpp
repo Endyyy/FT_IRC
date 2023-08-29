@@ -113,11 +113,9 @@ bool	Channel::check_if_inv(std::string username) const
 	return (false);
 }
 
-bool	Channel::check_if_empty() const////////////////rename ?
+bool	Channel::check_if_empty() const
 {
 	std::vector<User*>::const_iterator it = _reg_users.begin();
-	// if (it == _reg_users.end())
-	// 	return (true);
 	it = _reg_ope.begin();
 	if (it == _reg_ope.end())
 		return (true);
@@ -140,14 +138,13 @@ bool	Channel::addUser(User *user)
 	{
 		if (check_if_space_available())
 		{
-			std::cout << "addUser because not find in reg_users" << std::endl;
 			_reg_users.push_back(user);
 			return (true);
 		}
 		else
 		{
 			send(user->get_userSocket(), "Error : the channel is full.\n", strlen("Error : the channel is full.\n"), 0);
-			std::cout << "channel is full. addUser aborted" << std::endl;
+			std::cout << "channel is full. adding new user aborted" << std::endl;
 		}
 	}
 	return (false);
@@ -207,7 +204,7 @@ int	Channel::user_counter()
 	int i = 0;
 	for (std::vector<User*>::iterator it = _reg_users.begin(); it != _reg_users.end(); it++)
 		i++;
-	std::cout << "USER_COUNTER I = " << i << std::endl;
+	std::cout << "there is currently " << i << " users in channel #" << _name << std::endl;
 	return (i);
 }
 
@@ -234,13 +231,12 @@ bool	Channel::removeUser(User *user)
 {
 	std::vector<User*>::iterator ope_it = std::find(_reg_ope.begin(), _reg_ope.end(), user);
 	std::vector<User*>::iterator user_it = std::find(_reg_users.begin(), _reg_users.end(), user);
-	// std::cout << "removeUser" << std::endl;
 	if (ope_it != _reg_ope.end())
 		_reg_ope.erase(ope_it);
 	if (user_it != _reg_users.end())
 	{
 		_reg_users.erase(user_it);
-		std::cout << "user removed from channel" << std::endl;
+		std::cout << "user removed from channel #" << _name << std::endl;
 		return (true);
 	}
 	return (false);
@@ -252,7 +248,7 @@ bool	Channel::removeInv(std::string const username)
 	if (user_it != _reg_inv.end())
 	{
 		_reg_inv.erase(user_it);
-		std::cout << "user removed from invitation list" << std::endl;
+		std::cout << "user removed from invitation list of channel #" << _name << std::endl;
 		return (true);
 	}
 	return (false);

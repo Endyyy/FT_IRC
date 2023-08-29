@@ -74,7 +74,7 @@ void	Server::run()
 
 	while (_active)
 	{
-		std::cout << std::endl << "while" << std::endl;
+		std::cout << std::endl << "main loop" << std::endl;
 
 		reset_fd_set();
 		std::cout << "fd_set reseted" << std::endl;
@@ -107,7 +107,7 @@ void	Server::run()
 
 		for (std::map<type_sock, User*>::iterator it = _clients.begin(); _active && it != _clients.end(); it++)
 		{
-			std::cout << "for" << std::endl;
+			std::cout << "clients loop" << std::endl;
 			socket = it->first;
 			if (_active && check_activity(it->second->get_userSocket()))
 			{
@@ -208,7 +208,7 @@ bool	Server::recv_from_user(type_sock userSocket)
 	{
 		std::cout << "normal behaviour, bytes > 0" << std::endl;
 		_clients[userSocket]->add_to_inputStack(buffer);
-		if (_clients[userSocket]->get_inputStack()[_clients[userSocket]->get_inputStack().size() - 1] == '\n')/////////condition la plus appropriee ?
+		if (_clients[userSocket]->get_inputStack()[_clients[userSocket]->get_inputStack().size() - 1] == '\n')
 		{
 			_clients[userSocket]->set_inputStack(_clients[userSocket]->get_inputStack().erase(_clients[userSocket]->get_inputStack().size() - 1));
 			std::cout << "input cleaned" << std::endl;
@@ -292,7 +292,7 @@ void	Server::ask_for_login_credentials(std::string input, type_sock client_socke
 	}
 }
 
-type_sock	Server::findSocketFromNickname(std::string target)/////////////voir si -1 ne va pas casser d'autres fonctions
+type_sock	Server::findSocketFromNickname(std::string target)
 {
 	type_sock targetSocket = -1;
 	for (std::map<type_sock, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
@@ -309,7 +309,7 @@ type_sock	Server::findSocketFromNickname(std::string target)/////////////voir si
 
 void Server::checkCommand(std::string input, type_sock client_socket)
 {
-	int					lvl = _clients[client_socket]->get_userState();//////////////////////risquee, modifier par iterator
+	int					lvl = _clients[client_socket]->get_userState();
 	std::stringstream	stream(input);
 	std::string			cmd;
 
@@ -471,7 +471,7 @@ void	Server::manhunt(User* user)
 ////////////////////////////////////////////////////////////////////////////////
 // Commands
 
-bool Server::cmdPass(std::string input)//done
+bool Server::cmdPass(std::string input)
 {
 	std::stringstream	stream(input);
 	std::string			cmd;
@@ -492,7 +492,7 @@ bool Server::cmdPass(std::string input)//done
 	return (false);
 }
 
-bool Server::cmdNick(std::string input, type_sock client_socket)// done
+bool Server::cmdNick(std::string input, type_sock client_socket)
 {
 	std::stringstream	stream(input);
 	std::string			cmd;
@@ -519,7 +519,7 @@ bool Server::cmdNick(std::string input, type_sock client_socket)// done
 	// availability test
 	for (std::map<type_sock, User*>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
-		if (it->second->get_nickname() == nickname && nickname[0] != '\n')/////////// pas d'erreur ici ?
+		if (it->second->get_nickname() == nickname && nickname[0] != '\n')
 		{
 			send(client_socket, "Nickname already taken.\n", strlen("Nickname already taken.\n"), 0);
 			return (false);
@@ -530,7 +530,7 @@ bool Server::cmdNick(std::string input, type_sock client_socket)// done
 	return (true);
 }
 
-bool Server::cmdUser(std::string input, type_sock client_socket)// done
+bool Server::cmdUser(std::string input, type_sock client_socket)
 {
 	std::stringstream	stream(input);
 	std::string			cmd;
@@ -558,7 +558,7 @@ bool Server::cmdUser(std::string input, type_sock client_socket)// done
 	return (true);
 }
 
-void Server::cmdJoin(std::string input, type_sock client_socket)// work in progress
+void Server::cmdJoin(std::string input, type_sock client_socket)
 {
 	std::stringstream	stream(input);
 	std::string			cmd;
@@ -581,9 +581,9 @@ void Server::cmdJoin(std::string input, type_sock client_socket)// work in progr
 	std::map<std::string, Channel*>::iterator chan_it = _channels.find(channel_name);
 	std::map<type_sock, User*>::iterator client_it = _clients.find(client_socket);
 
-	if (key.size()) // password given
+	if (key.size())
 		success = join_with_key(client_socket, channel_name, key);
-	else // no password given
+	else
 		success = join_without_key(client_socket, channel_name);
 
 	if (success > 1) // channel creation
@@ -591,7 +591,6 @@ void Server::cmdJoin(std::string input, type_sock client_socket)// work in progr
 		_channels.insert(std::make_pair(channel_name, new Channel(channel_name, client_it->second)));
 		send(client_it->second->get_userSocket(), "You have become member and operator of the channel !\n", strlen("You have become member and operator of the channel !\n"), 0);
 		std::cout << "channel creation done in cmdJoin" << std::endl;
-		chan_it = _channels.find(channel_name);
 	}
 	else if (success) // channel already existing
 	{
@@ -608,7 +607,7 @@ void Server::cmdJoin(std::string input, type_sock client_socket)// work in progr
 	}
 }
 
-void Server::cmdKick(std::string arg, type_sock client_socket) //DONE
+void Server::cmdKick(std::string arg, type_sock client_socket)
 {
 	std::stringstream	stream(arg);
 	std::string			cmd;
@@ -682,7 +681,7 @@ void Server::cmdKick(std::string arg, type_sock client_socket) //DONE
 	}
 }
 
-void Server::cmdPart(std::string arg, type_sock client_socket) //DONE
+void Server::cmdPart(std::string arg, type_sock client_socket)
 {
 	std::stringstream	stream(arg);
 	std::string			cmd;
@@ -726,7 +725,7 @@ void Server::cmdPart(std::string arg, type_sock client_socket) //DONE
 	send(client_socket, "You left the channel !\n", strlen("You left the channel !\n"), 0);
 }
 
-void Server::cmdInvite(std::string arg, type_sock client_socket) //DONE
+void Server::cmdInvite(std::string arg, type_sock client_socket)
 {
 	std::stringstream	stream(arg);
 	std::string			cmd;
@@ -789,7 +788,7 @@ void Server::cmdInvite(std::string arg, type_sock client_socket) //DONE
 	}
 }
 
-void Server::cmdTopic(std::string arg, type_sock client_socket) //DONE
+void Server::cmdTopic(std::string arg, type_sock client_socket)
 {
 	std::stringstream	stream(arg);
 	std::string			cmd;
@@ -858,7 +857,7 @@ void Server::cmdTopic(std::string arg, type_sock client_socket) //DONE
 	}
 }
 
-void Server::cmdPrivMsg(std::string arg, type_sock client_socket) //DONE
+void Server::cmdPrivMsg(std::string arg, type_sock client_socket)
 {
 	std::stringstream	stream(arg);
 	std::string			cmd;
