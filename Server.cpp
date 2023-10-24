@@ -250,7 +250,7 @@ std::string Server::get_clientDatas(type_sock socket)
 std::vector<std::string> Server::splitString(std::string input)
 {
     std::vector<std::string> tokens;
- 
+
     std::stringstream ss(input);
     std::string token;
     while (std::getline(ss, token, '\n'))
@@ -702,15 +702,15 @@ void Server::cmdKick(std::string arg, type_sock client_socket)
 		stream >> std::ws;
 		std::getline(stream, ban_msg);
 	}
+	if (_channels.find(channel_name) == _channels.end())				  //Check si channel existe
+	{
+		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
+		return ;
+	}
 	if (!(_channels[channel_name]->check_if_ope(_clients[client_socket]))) //Check si operateur ou non
 	{
 		send(client_socket, "You don't have the right to use this command !\n", \
 		strlen("You don't have the right to use this command !\n"), 0);
-		return ;
-	}
-	if (_channels.find(channel_name) == _channels.end())				  //Check si channel existe
-	{
-		send(client_socket, "This channel does not exist !\n", strlen("This channel does not exist !\n"), 0);
 		return ;
 	}
 	type_sock targetSocket = findSocketFromNickname(banned_user);
